@@ -1,4 +1,4 @@
-package mr.minecraft15.OnlineTime.Main;
+package mr.minecraft15.onlinetime;
 
 import java.io.File;
 

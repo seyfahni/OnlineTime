@@ -1,7 +1,7 @@
-package mr.minecraft15.OnlineTime.Commands;
+package mr.minecraft15.onlinetime.command;
 
-import mr.minecraft15.OnlineTime.Main.Lang;
-import mr.minecraft15.OnlineTime.Main.Main;
+import mr.minecraft15.onlinetime.Lang;
+import mr.minecraft15.onlinetime.Main;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.plugin.Command;
 

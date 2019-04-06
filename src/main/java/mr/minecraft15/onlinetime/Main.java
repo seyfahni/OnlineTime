@@ -1,4 +1,4 @@
-package mr.minecraft15.OnlineTime.Main;
+package mr.minecraft15.onlinetime;
 
 import java.io.File;
 import java.io.IOException;
@@ -7,8 +7,8 @@ import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.UUID;
 
-import mr.minecraft15.OnlineTime.Commands.OnlineTime;
-import mr.minecraft15.OnlineTime.Listener.PlayerListener;
+import mr.minecraft15.onlinetime.command.OnlineTime;
+import mr.minecraft15.onlinetime.listener.PlayerListener;
 import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.plugin.Plugin;

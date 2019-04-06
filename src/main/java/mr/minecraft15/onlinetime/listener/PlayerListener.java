@@ -1,7 +1,7 @@
-package mr.minecraft15.OnlineTime.Listener;
+package mr.minecraft15.onlinetime.listener;
 
-import mr.minecraft15.OnlineTime.Main.Main;
-import mr.minecraft15.OnlineTime.Main.Names;
+import mr.minecraft15.onlinetime.Main;
+import mr.minecraft15.onlinetime.Names;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.event.PlayerDisconnectEvent;
 import net.md_5.bungee.api.event.PostLoginEvent;
