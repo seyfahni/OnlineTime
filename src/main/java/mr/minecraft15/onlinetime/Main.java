@@ -1,13 +1,7 @@
 package mr.minecraft15.onlinetime;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.CopyOption;
-import java.nio.file.Files;
-import java.util.HashMap;
-import java.util.UUID;
-
-import mr.minecraft15.onlinetime.command.OnlineTime;
+import de.themoep.minedown.MineDown;
+import mr.minecraft15.onlinetime.command.OnlineTimeCommand;
 import mr.minecraft15.onlinetime.listener.PlayerListener;
 import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
@@ -17,182 +11,151 @@ import net.md_5.bungee.config.Configuration;
 import net.md_5.bungee.config.ConfigurationProvider;
 import net.md_5.bungee.config.YamlConfiguration;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.logging.Level;
+
 public class Main extends Plugin {
     private static Plugin instance;
-    private static File file;
-    private static Configuration cfg;
-    private static String prefix;
-    public static HashMap<UUID, Long> onlineSince = new HashMap<UUID, Long>();
+    public static HashMap<UUID, Long> onlineSince = new HashMap<>();
+
+    private Configuration config;
+
+    private MineDown messageFormat;
+    private Lang lang;
+    private String serverName;
+
+    private long saveInterval;
+
+    private OnlineTimeStorage onlineTimeStorage;
+    private PlayerNameStorage playerNameStorage;
+
+    public Main() {
+        instance = this;
+    }
 
     @Override
     public void onEnable() {
-	instance = this;
-	prefix = "�7[�3OnlineTime�7] ";
+        instance = this;
 
-	loadConfig();
+        if (!(loadConfig() && loadStorage())) {
+            getProxy().getLogger().log(Level.SEVERE, "Could not enable OnlineTime!");
+            return;
+        }
 
-	Lang.lang = Lang.cfg.getString("Language");
-
-	PluginManager PM = getProxy().getPluginManager();
-	PM.registerCommand(Main.getInstance(), new OnlineTime());
-	PM.registerListener(Main.getInstance(), new PlayerListener());
+        PluginManager pluginManager = getProxy().getPluginManager();
+        pluginManager.registerCommand(this, new OnlineTimeCommand(this, lang, serverName));
+        pluginManager.registerListener(this, new PlayerListener(this, playerNameStorage));
     }
 
     public static Plugin getInstance() {
-	return instance;
+        return instance;
     }
 
-    public static String getPrefix() {
-	return prefix;
+    public MineDown getFormattedMessage(String rawMessage) {
+        return messageFormat.copy().replace("%message%", rawMessage);
     }
 
-    public static void loadConfig() {
-	try {
-	    if (!Main.getInstance().getDataFolder().exists()) {
-		Main.getInstance().getDataFolder().mkdir();
-	    }
+    private boolean loadConfig() {
+            if (!getDataFolder().exists()) {
+                getDataFolder().mkdir();
+            }
 
-	    file = new File(Main.getInstance().getDataFolder(), "time.yml");
-	    if (!file.exists()) {
-		Files.copy(Main.getInstance().getResourceAsStream("time.yml"), file.toPath(), new CopyOption[0]);
-	    }
-	    cfg = ConfigurationProvider.getProvider(YamlConfiguration.class).load(file);
+            this.config = loadOrCreateConfigFile("config.yml");
+            if (config == null) {
+                return false;
+            }
 
-	    Names.file = new File(Main.getInstance().getDataFolder(), "names.yml");
-	    if (!Names.file.exists()) {
-		Files.copy(Main.getInstance().getResourceAsStream("names.yml"), Names.file.toPath(), new CopyOption[0]);
-	    }
-	    Names.cfg = ConfigurationProvider.getProvider(YamlConfiguration.class).load(Names.file);
+            this.messageFormat = new MineDown(config.getString("messageformat"));
+            this.serverName = config.getString("servername", "this server");
+            this.saveInterval = config.getLong("saveinterval", 30);
 
-	    Lang.file = new File(Main.getInstance().getDataFolder(), "config.yml");
-	    if (!Lang.file.exists()) {
-		Files.copy(Main.getInstance().getResourceAsStream("config.yml"), Lang.file.toPath(), new CopyOption[0]);
-	    }
-	    Lang.cfg = ConfigurationProvider.getProvider(YamlConfiguration.class).load(Lang.file);
-	} catch (Exception e) {
-	    e.printStackTrace();
-	}
+            Configuration langConfig = loadOrCreateConfigFile("messages.yml");
+            this.lang = new Lang(langConfig, config.getString("language"));
+            return lang != null;
     }
 
-    public static void save() {
-	try {
-	    ConfigurationProvider.getProvider(YamlConfiguration.class).save(cfg, file);
-	} catch (IOException e) {
-	    e.printStackTrace();
-	}
+    private Configuration loadOrCreateConfigFile(String configFileName) {
+        try {
+            File configFile = new File(getDataFolder(), configFileName);
+            if (!configFile.exists()) {
+                Files.copy(getResourceAsStream(configFileName), configFile.toPath());
+            }
+            return ConfigurationProvider.getProvider(YamlConfiguration.class).load(configFile);
+        } catch (IOException ioe) {
+            getLogger().log(Level.SEVERE, "could not load configuration file " + configFileName, ioe);
+            return null;
+        }
     }
 
-    public static void load() {
-	try {
-	    cfg = ConfigurationProvider.getProvider(YamlConfiguration.class).load(file);
-	} catch (IOException e) {
-	    e.printStackTrace();
-	}
+    private boolean loadStorage() {
+        try {
+            if (config.getBoolean("mysql.enabled", false)) {
+                loadMysqlStorage();
+            } else {
+                loadYamlStorage();
+            }
+            return true;
+        } catch (StorageException ex) {
+            getLogger().log(Level.SEVERE, "could not initialize storage", ex);
+            return false;
+        }
     }
 
-    public static Configuration getConfig() {
-	return cfg;
+    private void loadMysqlStorage() throws StorageException {
+        throw new UnsupportedOperationException("not implemented yet");
     }
 
-    public static String getTime(long seconds) {
-	long sec = 0, min = 0, h = 0, d = 0, w = 0, m = 0, y = 0;
-	for (long i = 0; i < seconds; ++i) {
-	    ++sec;
-	    if (sec >= 60) {
-		min++;
-		sec = 0;
-	    }
-	    if (min >= 60) {
-		h++;
-		min = 0;
-	    }
-	    if (h >= 24) {
-		d++;
-		h = 0;
-	    }
-	    if (d >= 7) {
-		w++;
-		d = 0;
-	    }
-	    if (w >= 4) {
-		m++;
-		w = 0;
-	    }
-	    if (m >= 12) {
-		y++;
-		m = 0;
-	    }
-	}
-	String secStr = (sec != 0)
-		? sec + " " + ((sec == 1) ? Lang.getMessage("Time_Second") : Lang.getMessage("Time_Seconds"))
-		: null,
-		minStr = (min != 0)
-			? min + " " + ((min == 1) ? Lang.getMessage("Time_Minute") : Lang.getMessage("Time_Minutes"))
-			: null,
-		hStr = (h != 0) ? h + " " + ((h == 1) ? Lang.getMessage("Time_Hour") : Lang.getMessage("Time_Hours"))
-			: null,
-		dStr = (d != 0) ? d + " " + ((d == 1) ? Lang.getMessage("Time_Day") : Lang.getMessage("Time_Days"))
-			: null,
-		wStr = (w != 0) ? w + " " + ((w == 1) ? Lang.getMessage("Time_Week") : Lang.getMessage("Time_Weeks"))
-			: null,
-		mStr = (m != 0) ? m + " " + ((m == 1) ? Lang.getMessage("Time_Month") : Lang.getMessage("Time_Months"))
-			: null,
-		yStr = (y != 0) ? y + " " + ((y == 1) ? Lang.getMessage("Time_Year") : Lang.getMessage("Time_Years"))
-			: null;
-	String r = (yStr == null ? "" : yStr + " ") + (mStr == null ? "" : mStr + " ")
-		+ (wStr == null ? "" : wStr + " ") + (dStr == null ? "" : dStr + " ") + (hStr == null ? "" : hStr + " ")
-		+ (minStr == null ? "" : minStr + " ") + (secStr == null ? "" : secStr + " ");
-	return r.substring(0, r.length() - 1);
+    private void loadYamlStorage() throws StorageException {
+        this.playerNameStorage = new YamlPlayerNameStorage(this, "names.yml", saveInterval);
+        this.onlineTimeStorage = new YamlOnlineTimeStorage(this,"time.yml", saveInterval);
     }
 
-    public static long getOnlineTime(ProxiedPlayer player) {
-	return getOnlineTime(player.getUniqueId());
+    public long getOnlineTime(String playerName) {
+        try {
+            ProxiedPlayer player = getProxy().getPlayer(playerName);
+            if (player != null) {
+                return getOnlineTime(player);
+            } else {
+                Optional<UUID> optionalUuid = playerNameStorage.getUuid(playerName);
+                if (!optionalUuid.isPresent()) {
+                    return 0;
+                }
+                return getOnlineTime(optionalUuid.get());
+            }
+        } catch (StorageException ex) {
+            getLogger().log(Level.WARNING, "could not get uuid of " + playerName, ex);
+            return 0;
+        }
     }
 
-    public static long getOnlineTime(UUID uuid) {
-	long time = Main.getConfig().getInt(uuid.toString());
-	if (onlineSince.containsKey(uuid)) {
-	    time += (System.currentTimeMillis() - onlineSince.get(uuid)) / 1000;
-	}
-	return time;
+    public long getOnlineTime(ProxiedPlayer player) {
+        return getOnlineTime(player.getUniqueId());
     }
 
-    public static long getOnlineTime(String player) {
-	String uuid;
-	long time = 0;
-	ProxiedPlayer p = ProxyServer.getInstance().getPlayer(player);
-	if (p == null) {
-	    uuid = Names.getUUIDByName(player);
-	} else {
-	    uuid = p.getUniqueId().toString();
-	    if (onlineSince.containsKey(UUID.fromString(uuid))) {
-		time += (System.currentTimeMillis() - onlineSince.get(UUID.fromString(uuid))) / 1000;
-	    }
-	}
-	if (uuid == null) {
-	    return 0;
-	}
-	time += Main.getConfig().getInt(uuid);
-	return time;
+    public long getOnlineTime(UUID uuid) {
+        try {
+            long currentOnlineTime = onlineSince.containsKey(uuid) ? (System.currentTimeMillis() - onlineSince.get(uuid)) / 1000 : 0;
+            return currentOnlineTime + onlineTimeStorage.getOnlineTime(uuid).orElse(0);
+        } catch (StorageException ex) {
+            getLogger().log(Level.WARNING, "could not get online time of " + uuid.toString(), ex);
+            return 0;
+        }
     }
 
-    public static void saveOnlineTime(UUID uuid) {
-	if (onlineSince.containsKey(uuid)) {
-	    long time = 0;
-	    try {
-		time += Main.getConfig().getInt(uuid.toString());
-	    } catch (Exception e) {
-	    }
-	    time += (System.currentTimeMillis() - onlineSince.get(uuid)) / 1000;
-	    Main.getConfig().set(uuid.toString(), time);
-	    Main.save();
-	    onlineSince.remove(uuid);
-	} else {
-	    System.err.println("Unable to save onlinetime from player " + uuid.toString() + "!");
-	}
-    }
-
-    public static void saveOnlineTime(String uuid) {
-	saveOnlineTime(UUID.fromString(uuid));
+    public void saveOnlineTime(UUID uuid) {
+        if (onlineSince.containsKey(uuid)) {
+            long currentOnlineTime = (System.currentTimeMillis() - onlineSince.get(uuid)) / 1000;
+            onlineSince.remove(uuid);
+            try {
+                onlineTimeStorage.addOnlineTime(uuid, currentOnlineTime);
+            } catch (StorageException ex) {
+                getLogger().log(Level.SEVERE, "could not save online time of " + uuid.toString(), ex);
+            }
+        }
     }
 }

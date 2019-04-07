@@ -7,9 +7,18 @@
   <version>1.0.0</version>
   <name>OnlineTime</name>
 
+  <licenses>
+    <license>
+      <name>MIT</name>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <basePackage>mr.minecraft15.onlinetime</basePackage>
   </properties>
 
   <build>
@@ -17,17 +26,17 @@
       <resource>
         <directory>src/main/resources</directory>
         <targetPath>.</targetPath>
-        <filtering>true</filtering>
-        <includes>
-          <include>plugin.yml</include>
-        </includes>
+        <filtering>false</filtering>
+        <excludes>
+          <exclude>bungee.yml</exclude>
+        </excludes>
       </resource>
       <resource>
         <directory>src/main/resources</directory>
         <targetPath>.</targetPath>
-        <filtering>false</filtering>
+        <filtering>true</filtering>
         <includes>
-          <include>**/*</include>
+          <include>bungee.yml</include>
         </includes>
       </resource>
     </resources>
@@ -40,16 +49,48 @@
           <target>1.8</target>
         </configuration>
       </plugin>
+      <plugin>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.2.1</version>
+        <configuration>
+          <relocations>
+            <relocation>
+              <pattern>de.themoep.minedown</pattern>
+              <shadedPattern>${basePackage}.libraries.minedown</shadedPattern>
+            </relocation>
+          </relocations>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
+
+  <repositories>
+    <repository>
+      <id>minebench-repo</id>
+      <url>http://repo.minebench.de/</url>
+    </repository>
+  </repositories>
 
   <dependencies>
     <dependency>
       <groupId>io.github.waterfallmc</groupId>
       <artifactId>waterfall-api</artifactId>
       <version>1.13-SNAPSHOT</version>
-      <type>javadoc</type>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>de.themoep</groupId>
+      <artifactId>minedown</artifactId>
+      <version>1.4-SNAPSHOT</version>
+      <scope>compile</scope>
     </dependency>
   </dependencies>
 </project>

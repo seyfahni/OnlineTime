@@ -1,47 +1,12 @@
-Language: 'en'
-Lang:
- en:
-  Time_Second: 'second'
-  Time_Seconds: 'seconds'
-  Time_Minute: 'minute'
-  Time_Minutes: 'minutes'
-  Time_Hour: 'hour'
-  Time_Hours: 'hours'
-  Time_Day: 'day'
-  Time_Days: 'days'
-  Time_Week: 'week'
-  Time_Weeks: 'weeks'
-  Time_Month: 'month'
-  Time_Months: 'months'
-  Time_Year: 'year'
-  Time_Years: 'years'
-  Command_Usage: '&7Use &3/OnlineTime [Player] &7to see a players onlinetime.'
-  Not_Online: '&7This player wasn''t on this server yet.'
-  Command_OnlineTime: '&7The player &3%player% &7has already played &3%time% &7on this server.'
- de:
-  Time_Second: 'Sekunde'
-  Time_Seconds: 'Sekunden'
-  Time_Minute: 'Minute'
-  Time_Minutes: 'Minuten'
-  Time_Hour: 'Stunde'
-  Time_Hours: 'Stunden'
-  Time_Day: 'Tag'
-  Time_Days: 'Tage'
-  Time_Week: 'Woche'
-  Time_Weeks: 'Wochen'
-  Time_Month: 'Monat'
-  Time_Months: 'Monate'
-  Time_Year: 'Jahr'
-  Time_Years: 'Jahre'
-  Command_Usage: '&7Benutze &3/OnlineTime [Spieler] &7um die Spielzeit anzuzeigen.'
-  Not_Online: '&7Dieser Spieler war noch nie auf diesem Server.'
-  Command_OnlineTime: '&7Der Spieler &3%player% &7hat bereits &3%time% &7auf diesem Server gespielt.'
-MySQL:
- Enabled: false
- Cache_Data: true
- Host: localhost
- Port: 3306
- Database: db
- Username: username
- Password: password
- Import_Data_From_File: true
+language: 'en'
+servername: 'this server'
+messageformat: '[[](gray)[OnlineTime](dark_aqua)[]](gray) %message%'
+saveinterval: 30
+mysql:
+ enabled: false
+ host: localhost
+ port: 3306
+ database: db
+ username: username
+ password: password
+ import: true

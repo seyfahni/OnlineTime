@@ -1,0 +1,62 @@
+en:
+  unit:
+    second:
+      singular: 'second'
+      plural: 'seconds'
+    minute:
+      singular: 'minute'
+      plural: 'minutes'
+    hour:
+      singular: 'hour'
+      plural: 'hours'
+    day:
+      singular: 'day'
+      plural: 'days'
+    week:
+      singular: 'week'
+      plural: 'weeks'
+    month:
+      singular: 'month'
+      plural: 'months'
+    year:
+      singular: 'year'
+      plural: 'years'
+  message:
+    command:
+      onlinetime:
+        usage: '[Use](gray) [/onlinetime [player]](dark_aqua) [to see a players onlinetime.](gray)'
+        notfound: '[The player](gray) [%player%](dark_aqua) [has not played on](gray) &gray&%server% [yet.](gray)'
+        timeseen:
+          self: '[You have played for](gray) [%time%](dark_aqua) [on](gray) &gray&%server%[.](gray)'
+          other: '[The player](gray) [%player%](dark_aqua) [has already played for](gray) [%time%](dark_aqua) [on](gray) &gray&%server%[.](gray).'
+de:
+  unit:
+    second:
+      singular: 'Sekunde'
+      plural: 'Sekunden'
+    minute:
+      singular: 'Minute'
+      plural: 'Minuten'
+    hour:
+      singular: 'Stunde'
+      plural: 'Stunden'
+    day:
+      singular: 'Tag'
+      plural: 'Tage'
+    week:
+      singular: 'Woche'
+      plural: 'Wochen'
+    month:
+      singular: 'Monat'
+      plural: 'Monate'
+    year:
+      singular: 'Jahr'
+      plural: 'Jahre'
+  message:
+    command:
+      onlinetime:
+        usage: '[Benutze](gray) [/onlinetime [Spieler]](dark_aqua) [um die Spielzeit anzuzeigen.](gray)'
+        notfound: '[Der Spieler](gray) [%player%](dark_aqua) [war noch nie auf](gray) &gray&%server%[.](gray)'
+        timeseen:
+          self: '[Du hast](gray) [%time%](dark_aqua) [auf](gray) &gray&%server% [gespielt.](gray)'
+          other: '[Der Spieler](gray) [%player%](dark_aqua) [hat](gray) [%time%](dark_aqua) [auf](gray) &gray&%server% [gespielt.](gray).'
