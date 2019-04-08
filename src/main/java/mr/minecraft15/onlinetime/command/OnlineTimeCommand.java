@@ -1,8 +1,11 @@
 package mr.minecraft15.onlinetime.command;
 
+import de.themoep.minedown.MineDown;
 import mr.minecraft15.onlinetime.Lang;
 import mr.minecraft15.onlinetime.Main;
 import net.md_5.bungee.api.CommandSender;
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.plugin.Command;
 import net.md_5.bungee.api.plugin.Plugin;
@@ -15,9 +18,9 @@ public class OnlineTimeCommand extends Command {
 
     private final Main plugin;
     private final Lang lang;
-    private final String serverName;
+    private final BaseComponent[] serverName;
 
-    public OnlineTimeCommand(Main plugin, Lang lang, String serverName) {
+    public OnlineTimeCommand(Main plugin, Lang lang, BaseComponent[] serverName) {
         super("onlinetime", null, "onlinet", "otime", "ot");
         this.plugin = plugin;
         this.lang = lang;
@@ -33,26 +36,32 @@ public class OnlineTimeCommand extends Command {
             } else if (sender instanceof ProxiedPlayer){
                 playerName = sender.getName();
             } else {
-                sender.sendMessage(plugin.getFormattedMessage(lang.getMessage("message.command.onlinetime.usage")).toComponent());
+                sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetime.usage")).toComponent()).toComponent());
                 return;
             }
             plugin.getProxy().getScheduler().runAsync(plugin, () -> {
                 long time = plugin.getOnlineTime(playerName);
                 if (time == 0) {
-                    sender.sendMessage(plugin.getFormattedMessage(lang.getMessage("message.command.onlinetime.nofound"))
-                            .replace("%player%", playerName, "%server%", serverName).toComponent());
+                    sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetime.notfound"))
+                            .replace("server", serverName)
+                            .replace("player", playerName)
+                            .toComponent()).toComponent());
                 } else {
                     if (Objects.equals(sender.getName(), playerName)) {
-                        sender.sendMessage(plugin.getFormattedMessage(lang.getMessage("message.command.onlinetime.timeseen.self"))
-                                .replace("%server%", serverName, "%time%", formatTime(time)).toComponent());
+                        sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetime.timeseen.self"))
+                                .replace("server", serverName)
+                                .replace("time", formatTime(time))
+                                .toComponent()).toComponent());
                     } else {
-                        sender.sendMessage(plugin.getFormattedMessage(lang.getMessage("message.command.onlinetime.timeseen.other"))
-                                .replace("%player%", playerName, "%server%", serverName, "%time%", formatTime(time)).toComponent());
+                        sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetime.timeseen.other"))
+                                .replace("server", serverName)
+                                .replace("player", playerName, "time", formatTime(time))
+                                .toComponent()).toComponent());
                     }
                 }
             });
         } else {
-            sender.sendMessage(plugin.getFormattedMessage(lang.getMessage("message.command.onlinetime.usage")).toComponent());
+            sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetime.usage")).toComponent()).toComponent());
         }
     }
 

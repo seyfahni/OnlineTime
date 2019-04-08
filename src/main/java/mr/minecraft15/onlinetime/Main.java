@@ -2,8 +2,10 @@ package mr.minecraft15.onlinetime;
 
 import de.themoep.minedown.MineDown;
 import mr.minecraft15.onlinetime.command.OnlineTimeCommand;
+import mr.minecraft15.onlinetime.command.TestMineDownCommand;
 import mr.minecraft15.onlinetime.listener.PlayerListener;
 import net.md_5.bungee.api.ProxyServer;
+import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.api.plugin.PluginManager;
@@ -27,7 +29,7 @@ public class Main extends Plugin {
 
     private MineDown messageFormat;
     private Lang lang;
-    private String serverName;
+    private BaseComponent[] serverName;
 
     private long saveInterval;
 
@@ -49,6 +51,7 @@ public class Main extends Plugin {
 
         PluginManager pluginManager = getProxy().getPluginManager();
         pluginManager.registerCommand(this, new OnlineTimeCommand(this, lang, serverName));
+        pluginManager.registerCommand(this, new TestMineDownCommand());
         pluginManager.registerListener(this, new PlayerListener(this, playerNameStorage));
     }
 
@@ -76,8 +79,8 @@ public class Main extends Plugin {
         return instance;
     }
 
-    public MineDown getFormattedMessage(String rawMessage) {
-        return messageFormat.copy().replace("%message%", rawMessage);
+    public MineDown getFormattedMessage(BaseComponent... rawMessage) {
+        return messageFormat.copy().replace("message", rawMessage);
     }
 
     private boolean loadConfig() {
@@ -91,7 +94,7 @@ public class Main extends Plugin {
             }
 
             this.messageFormat = new MineDown(config.getString("messageformat"));
-            this.serverName = config.getString("servername", "this server");
+            this.serverName = new MineDown(config.getString("servername", "this server")).toComponent();
             this.saveInterval = config.getLong("saveinterval", 30);
 
             Configuration langConfig = loadOrCreateConfigFile("messages.yml");

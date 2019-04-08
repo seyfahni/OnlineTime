@@ -1,6 +1,6 @@
 language: 'en'
 servername: 'this server'
-messageformat: '[[](gray)[OnlineTime](dark_aqua)[]](gray) %message%'
+messageformat: '&gray&\[[OnlineTime](dark_aqua)\] %message%'
 saveinterval: 30
 mysql:
  enabled: false
@@ -9,4 +9,3 @@ mysql:
  database: minecraft_database
  username: minecraft_user
  password: password
- 
