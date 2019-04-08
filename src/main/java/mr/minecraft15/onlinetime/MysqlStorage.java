@@ -3,13 +3,13 @@ package mr.minecraft15.onlinetime;
 import com.mysql.cj.jdbc.MysqlDataSource;
 import net.md_5.bungee.api.plugin.Plugin;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.UUID;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.*;
 
 public class MysqlStorage implements PlayerNameStorage, OnlineTimeStorage {
 
@@ -17,7 +17,9 @@ public class MysqlStorage implements PlayerNameStorage, OnlineTimeStorage {
     private final ReadWriteLock rwLock;
     private volatile boolean closed;
 
-    private Connection connection;
+    private final DataSource dataSource;
+    private final Lock connectionLock;
+    private volatile Connection connection;
 
     private PreparedStatement getByUuidStmnt;
     private PreparedStatement getByNameStmnt;
@@ -28,26 +30,28 @@ public class MysqlStorage implements PlayerNameStorage, OnlineTimeStorage {
     public MysqlStorage(Plugin plugin, String host, int port, String database, String username, String password) throws StorageException {
         this.plugin = Objects.requireNonNull(plugin);
         this.rwLock = new ReentrantReadWriteLock();
+        this.connectionLock = new ReentrantLock();
         try {
-            MysqlDataSource dataSource = new MysqlDataSource();
-            dataSource.setServerName(Objects.requireNonNull(host));
-            dataSource.setPortNumber(port);
-            dataSource.setUser(Objects.requireNonNull(username));
-            dataSource.setPassword(Objects.requireNonNull(password));
-            dataSource.setDatabaseName(Objects.requireNonNull(database));
-            dataSource.setServerTimezone("UTC");
-            this.connection = dataSource.getConnection();
+            MysqlDataSource mysqlDataSource = new MysqlDataSource();
+            mysqlDataSource.setServerName(Objects.requireNonNull(host));
+            mysqlDataSource.setPortNumber(port);
+            mysqlDataSource.setUser(Objects.requireNonNull(username));
+            mysqlDataSource.setPassword(Objects.requireNonNull(password));
+            mysqlDataSource.setServerTimezone("UTC");
+            Objects.requireNonNull(database);
+            try (Connection tempConnection = mysqlDataSource.getConnection()) {
+                tempConnection.createStatement().execute("CREATE DATABASE `" + database + "`");
+            }
+            mysqlDataSource.setDatabaseName(database);
+            this.dataSource = mysqlDataSource;
+            this.connection = openConnection();
             connection.createStatement().execute("CREATE TABLE IF NOT EXISTS `online_time` (" +
                     "`id`   INT NOT NULL AUTO_INCREMENT PRIMARY KEY," +
                     "`uuid` BINARY(16) NOT NULL UNIQUE," +
                     "`name` CHAR(16) CHARACTER SET ascii UNIQUE," +
                     "`time` BIGINT UNSIGNED NOT NULL DEFAULT 0" +
                     ") ENGINE InnoDB");
-            getByUuidStmnt = connection.prepareStatement("SELECT `name`, `time` FROM `online_time` WHERE `uuid` = ?");
-            getByNameStmnt = connection.prepareStatement("SELECT `uuid` AS uuid FROM `online_time` WHERE `name` = ?");
-            updateTimeStmnt = connection.prepareStatement("UPDATE `online_time` SET `time` = `time` + ? WHERE `uuid` = ?");
-            unsetTakenNameStmnt = connection.prepareStatement("UPDATE `online_time` SET name = NULL WHERE `uuid` = ?");
-            insertOrUpdateEntryStmnt = connection.prepareStatement("INSERT INTO `online_time` (`uuid`, `name`, `time`) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `name` = ?, `time` = `time` + ?");
+            prepareStatements(connection);
         } catch (SQLException ex) {
             throw new StorageException(ex);
         }
@@ -60,6 +64,7 @@ public class MysqlStorage implements PlayerNameStorage, OnlineTimeStorage {
         rwLock.readLock().lock();
         try {
             checkClosed();
+            checkOrReopenConnection();
             getByUuidStmnt.setBytes(1, toBytes(uuid));
             try (ResultSet result = getByUuidStmnt.executeQuery()) {
                 if (result.first()) {
@@ -81,6 +86,7 @@ public class MysqlStorage implements PlayerNameStorage, OnlineTimeStorage {
         rwLock.writeLock().lock();
         try {
             checkClosed();
+            checkOrReopenConnection();
             if (getName(uuid).isPresent()) {
                 updateTimeStmnt.setLong(1, additionalOnlineTime);
                 updateTimeStmnt.setBytes(2, toBytes(uuid));
@@ -107,6 +113,7 @@ public class MysqlStorage implements PlayerNameStorage, OnlineTimeStorage {
         rwLock.readLock().lock();
         try {
             checkClosed();
+            checkOrReopenConnection();
             getByNameStmnt.setString(1, name);
             try (ResultSet result = getByNameStmnt.executeQuery()) {
                 if (result.first()) {
@@ -129,6 +136,7 @@ public class MysqlStorage implements PlayerNameStorage, OnlineTimeStorage {
         rwLock.readLock().lock();
         try {
             checkClosed();
+            checkOrReopenConnection();
             getByUuidStmnt.setBytes(1, toBytes(uuid));
             try (ResultSet result = getByUuidStmnt.executeQuery()) {
                 if (result.first()) {
@@ -151,6 +159,7 @@ public class MysqlStorage implements PlayerNameStorage, OnlineTimeStorage {
         rwLock.writeLock().lock();
         try {
             checkClosed();
+            checkOrReopenConnection();
             Optional<UUID> oldNameHolder = getUuid(name);
             if (oldNameHolder.filter(oldUuid -> !oldUuid.equals(uuid)).isPresent()) { // name not unique ? update on duplicate uuid
                 unsetTakenNameStmnt.setBytes(1, toBytes(oldNameHolder.get()));
@@ -204,6 +213,94 @@ public class MysqlStorage implements PlayerNameStorage, OnlineTimeStorage {
         }
     }
 
+    private void checkOrReopenConnection() throws StorageException {
+        try {
+            Connection con = this.connection;
+            if (con == null || !con.isValid(1)) {
+                connectionLock.lock();
+                try {
+                    if (!connection.isValid(2)) {
+                        reopenConnection();
+                    }
+                } finally {
+                    connectionLock.unlock();
+                }
+            }
+        } catch (SQLException ex) {
+            throw new StorageException(ex);
+        }
+    }
+
+    private void reopenConnection() throws StorageException {
+        try {
+            try {
+                closeStatements();
+            } finally {
+                closeConnection();
+            }
+        } catch (SQLException ex) {
+            // suppress closing exceptions
+        }
+        try {
+            Connection connection = openConnection();
+            prepareStatements(connection);
+            this.connection = connection;
+        } catch (SQLException ex) {
+            throw new StorageException(ex);
+        }
+    }
+
+    private void closeStatements() throws SQLException {
+        try {
+            if (insertOrUpdateEntryStmnt != null) {
+                insertOrUpdateEntryStmnt.close();
+                insertOrUpdateEntryStmnt = null;
+            }
+        } finally {
+            try {
+                if (unsetTakenNameStmnt != null) {
+                    unsetTakenNameStmnt.close();
+                    unsetTakenNameStmnt = null;
+                }
+            } finally {
+                try {
+                    if (updateTimeStmnt != null) {
+                        updateTimeStmnt.close();
+                        updateTimeStmnt = null;
+                    }
+                } finally {
+                    try {
+                        if (getByNameStmnt != null) {
+                            getByNameStmnt.close();
+                            getByNameStmnt = null;
+                        }
+                    } finally {
+                        if (getByUuidStmnt != null) {
+                            getByUuidStmnt.close();
+                            getByUuidStmnt = null;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void closeConnection() throws SQLException {
+        connection.close();
+    }
+
+    private Connection openConnection() throws SQLException {
+        return dataSource.getConnection();
+    }
+
+    private void prepareStatements(Connection connection) throws SQLException {
+        getByUuidStmnt = connection.prepareStatement("SELECT `name`, `time` FROM `online_time` WHERE `uuid` = ?");
+        getByNameStmnt = connection.prepareStatement("SELECT `uuid` AS uuid FROM `online_time` WHERE `name` = ?");
+        updateTimeStmnt = connection.prepareStatement("UPDATE `online_time` SET `time` = `time` + ? WHERE `uuid` = ?");
+        unsetTakenNameStmnt = connection.prepareStatement("UPDATE `online_time` SET name = NULL WHERE `uuid` = ?");
+        insertOrUpdateEntryStmnt = connection.prepareStatement("INSERT INTO `online_time` (`uuid`, `name`, `time`) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `name` = ?, `time` = `time` + ?");
+    }
+
     @Override
     public void close() throws StorageException {
         if (closed) {
@@ -218,30 +315,9 @@ public class MysqlStorage implements PlayerNameStorage, OnlineTimeStorage {
         }
         try {
             try {
-                if (insertOrUpdateEntryStmnt != null)
-                    insertOrUpdateEntryStmnt.close();
+                closeStatements();
             } finally {
-                try {
-                    if (unsetTakenNameStmnt != null)
-                        unsetTakenNameStmnt.close();
-                } finally {
-                    try {
-                        if (updateTimeStmnt != null)
-                            updateTimeStmnt.close();
-                    } finally {
-                        try {
-                            if (getByNameStmnt != null)
-                                getByNameStmnt.close();
-                        } finally {
-                            try {
-                                if (getByUuidStmnt != null)
-                                    getByUuidStmnt.close();
-                            } finally {
-                                connection.close();
-                            }
-                        }
-                    }
-                }
+                closeConnection();
             }
         } catch (SQLException ex) {
             throw new StorageException(ex);
