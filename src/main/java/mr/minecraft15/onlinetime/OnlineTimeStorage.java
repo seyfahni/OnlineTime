@@ -24,7 +24,7 @@
 
 package mr.minecraft15.onlinetime;
 
-import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.UUID;
 
 public interface OnlineTimeStorage extends AutoCloseable {
@@ -36,7 +36,7 @@ public interface OnlineTimeStorage extends AutoCloseable {
      * @return the player's online time
      * @throws StorageException wrapping exceptions of the underlying storage implementation
      */
-    OptionalInt getOnlineTime(UUID uuid) throws StorageException;
+    OptionalLong getOnlineTime(UUID uuid) throws StorageException;
 
     /**
      * Increase the time in seconds that the player identified by the uuid has played by given amount and write the result back to storage.

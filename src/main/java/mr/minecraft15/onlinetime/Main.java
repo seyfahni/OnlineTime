@@ -52,6 +52,26 @@ public class Main extends Plugin {
         pluginManager.registerListener(this, new PlayerListener(this, playerNameStorage));
     }
 
+    @Override
+    public void onDisable() {
+        getProxy().getPluginManager().unregisterCommands(this);
+        getProxy().getPluginManager().unregisterListeners(this);
+        if (onlineTimeStorage != null) {
+            try {
+                onlineTimeStorage.close();
+            } catch (StorageException ex) {
+                getLogger().log(Level.SEVERE, "error while closing online time storage", ex);
+            }
+        }
+        if (playerNameStorage != null) {
+            try {
+                playerNameStorage.close();
+            } catch (StorageException ex) {
+                getLogger().log(Level.SEVERE, "error while closing player name storage", ex);
+            }
+        }
+    }
+
     public static Plugin getInstance() {
         return instance;
     }
@@ -107,7 +127,14 @@ public class Main extends Plugin {
     }
 
     private void loadMysqlStorage() throws StorageException {
-        throw new UnsupportedOperationException("not implemented yet");
+        String host = config.getString("mysql.host", "127.0.0.1");
+        int port = config.getInt("mysql.port", 3306);
+        String database = config.getString("mysql.database", "minecraft_database");
+        String username = config.getString("mysql.username", "minecraft_user");
+        String password = config.getString("mysql.password", "password");
+        MysqlStorage storage = new MysqlStorage(this, host, port, database, username, password);
+        this.playerNameStorage = storage;
+        this.onlineTimeStorage = storage;
     }
 
     private void loadYamlStorage() throws StorageException {
@@ -140,7 +167,7 @@ public class Main extends Plugin {
     public long getOnlineTime(UUID uuid) {
         try {
             long currentOnlineTime = onlineSince.containsKey(uuid) ? (System.currentTimeMillis() - onlineSince.get(uuid)) / 1000 : 0;
-            return currentOnlineTime + onlineTimeStorage.getOnlineTime(uuid).orElse(0);
+            return currentOnlineTime + onlineTimeStorage.getOnlineTime(uuid).orElse(0L);
         } catch (StorageException ex) {
             getLogger().log(Level.WARNING, "could not get online time of " + uuid.toString(), ex);
             return 0;

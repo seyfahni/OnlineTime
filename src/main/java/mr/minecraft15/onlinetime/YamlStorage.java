@@ -31,6 +31,7 @@ import net.md_5.bungee.config.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * Storage using YAML to save data into files.
@@ -53,7 +54,8 @@ public abstract class YamlStorage {
      * @throws StorageException if the storage file can't be read or written
      */
     public YamlStorage(Plugin plugin, String storageFileName) throws StorageException {
-        this.plugin = plugin;
+        this.plugin = Objects.requireNonNull(plugin);
+        Objects.requireNonNull(storageFileName);
         this.storageFile = new File(plugin.getDataFolder(), storageFileName);
         try {
             if (!storageFile.exists()) {

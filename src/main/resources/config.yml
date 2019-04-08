@@ -4,9 +4,9 @@ messageformat: '[[](gray)[OnlineTime](dark_aqua)[]](gray) %message%'
 saveinterval: 30
 mysql:
  enabled: false
- host: localhost
+ host: 127.0.0.1
  port: 3306
- database: db
- username: username
+ database: minecraft_database
+ username: minecraft_user
  password: password
- import: true
+ 

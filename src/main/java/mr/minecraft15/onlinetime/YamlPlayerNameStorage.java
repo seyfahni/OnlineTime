@@ -61,10 +61,11 @@ public class YamlPlayerNameStorage extends YamlStorage implements PlayerNameStor
 
     @Override
     public Optional<UUID> getUuid(String playerName) throws StorageException {
+        Objects.requireNonNull(playerName);
         checkClosed();
         rwLock.readLock().lock();
-        checkClosed();
         try {
+            checkClosed();
             if (!getStorage().contains(playerName)) {
                 return Optional.empty();
             } else {
@@ -77,11 +78,12 @@ public class YamlPlayerNameStorage extends YamlStorage implements PlayerNameStor
 
     @Override
     public Optional<String> getName(UUID uuid) throws StorageException {
+        Objects.requireNonNull(uuid);
         checkClosed();
         String uuidString = uuid.toString();
         rwLock.readLock().lock();
-        checkClosed();
         try {
+            checkClosed();
             Configuration storage = getStorage();
             return storage.getKeys().parallelStream().filter(key -> Objects.equals(storage.getString(key), uuidString)).findFirst();
         } finally {
@@ -91,10 +93,12 @@ public class YamlPlayerNameStorage extends YamlStorage implements PlayerNameStor
 
     @Override
     public void setEntry(UUID uuid, String name) throws StorageException {
+        Objects.requireNonNull(uuid);
+        Objects.requireNonNull(name);
         checkClosed();
         rwLock.writeLock().lock();
-        checkClosed();
         try {
+            checkClosed();
             getStorage().set(name, uuid.toString());
             changed.set(true);
         } finally {
@@ -107,6 +111,7 @@ public class YamlPlayerNameStorage extends YamlStorage implements PlayerNameStor
             throw new StorageException("closed");
         }
     }
+
     private void saveChangesSecure() {
         try {
             saveChanges();
@@ -133,6 +138,7 @@ public class YamlPlayerNameStorage extends YamlStorage implements PlayerNameStor
         }
         rwLock.writeLock().lock();
         if (closed) {
+            rwLock.writeLock().unlock();
             return;
         } else {
             closed = true;

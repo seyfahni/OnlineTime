@@ -27,7 +27,8 @@ package mr.minecraft15.onlinetime;
 import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.api.scheduler.ScheduledTask;
 
-import java.util.OptionalInt;
+import java.util.Objects;
+import java.util.OptionalLong;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -58,16 +59,17 @@ public class YamlOnlineTimeStorage extends YamlStorage implements OnlineTimeStor
     }
 
     @Override
-    public OptionalInt getOnlineTime(UUID uuid) throws StorageException {
+    public OptionalLong getOnlineTime(UUID uuid) throws StorageException {
+        Objects.requireNonNull(uuid);
         checkClosed();
         String path = uuid.toString();
         rwLock.readLock().lock();
-        checkClosed();
         try {
+            checkClosed();
             if (!getStorage().contains(path)) {
-                return OptionalInt.empty();
+                return OptionalLong.empty();
             } else {
-                return OptionalInt.of(getStorage().getInt(path));
+                return OptionalLong.of(getStorage().getInt(path));
             }
         } finally {
             rwLock.readLock().unlock();
@@ -76,10 +78,11 @@ public class YamlOnlineTimeStorage extends YamlStorage implements OnlineTimeStor
 
     @Override
     public void addOnlineTime(UUID uuid, long additionalOnlineTime) throws StorageException {
+        Objects.requireNonNull(uuid);
         checkClosed();
         rwLock.writeLock().lock();
-        checkClosed();
         try {
+            checkClosed();
             getStorage().set(uuid.toString(), getOnlineTime(uuid).orElse(0) + additionalOnlineTime);
             changed.set(true);
         } finally {
@@ -119,6 +122,7 @@ public class YamlOnlineTimeStorage extends YamlStorage implements OnlineTimeStor
         }
         rwLock.writeLock().lock();
         if (closed) {
+            rwLock.writeLock().unlock();
             return;
         } else {
             closed = true;

@@ -3,8 +3,13 @@ package mr.minecraft15.onlinetime.command;
 import mr.minecraft15.onlinetime.Lang;
 import mr.minecraft15.onlinetime.Main;
 import net.md_5.bungee.api.CommandSender;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.plugin.Command;
 import net.md_5.bungee.api.plugin.Plugin;
+
+import java.util.Objects;
+import java.util.concurrent.Callable;
+import java.util.concurrent.FutureTask;
 
 public class OnlineTimeCommand extends Command {
 
@@ -21,17 +26,33 @@ public class OnlineTimeCommand extends Command {
 
     @Override
     public void execute(CommandSender sender, String[] args) {
-        if (args.length == 1) {
-            long time = plugin.getOnlineTime(args[0]);
-            if (time == 0) {
-                sender.sendMessage(plugin.getFormattedMessage(lang.getMessage("Not_Online"))
-                        .replace("%player%", args[0], "%server%", serverName).toComponent());
+        if (args.length <= 1) {
+            String playerName;
+            if (args.length == 1) {
+                playerName = args[0];
+            } else if (sender instanceof ProxiedPlayer){
+                playerName = sender.getName();
             } else {
-                sender.sendMessage(plugin.getFormattedMessage(lang.getMessage("Command_OnlineTime"))
-                        .replace("%player%", args[0], "%server%", serverName, "%time%", formatTime(time)).toComponent());
+                sender.sendMessage(plugin.getFormattedMessage(lang.getMessage("message.command.onlinetime.usage")).toComponent());
+                return;
             }
+            plugin.getProxy().getScheduler().runAsync(plugin, () -> {
+                long time = plugin.getOnlineTime(playerName);
+                if (time == 0) {
+                    sender.sendMessage(plugin.getFormattedMessage(lang.getMessage("message.command.onlinetime.nofound"))
+                            .replace("%player%", playerName, "%server%", serverName).toComponent());
+                } else {
+                    if (Objects.equals(sender.getName(), playerName)) {
+                        sender.sendMessage(plugin.getFormattedMessage(lang.getMessage("message.command.onlinetime.timeseen.self"))
+                                .replace("%server%", serverName, "%time%", formatTime(time)).toComponent());
+                    } else {
+                        sender.sendMessage(plugin.getFormattedMessage(lang.getMessage("message.command.onlinetime.timeseen.other"))
+                                .replace("%player%", playerName, "%server%", serverName, "%time%", formatTime(time)).toComponent());
+                    }
+                }
+            });
         } else {
-            sender.sendMessage(plugin.getFormattedMessage(lang.getMessage("Command_Usage")).toComponent());
+            sender.sendMessage(plugin.getFormattedMessage(lang.getMessage("message.command.onlinetime.usage")).toComponent());
         }
     }
 
@@ -56,13 +77,13 @@ public class OnlineTimeCommand extends Command {
         long w = d / 7;
         d %= 7;
 
-        String secStr = sec != 0 ? sec + " " + (sec == 1 ? lang.getMessage("Time_Second") : lang.getMessage("Time_Seconds")) : null;
-        String minStr = min != 0 ? min + " " + (min == 1 ? lang.getMessage("Time_Minute") : lang.getMessage("Time_Minutes")) : null;
-        String hStr   = h   != 0 ? h   + " " + (h   == 1 ? lang.getMessage("Time_Hour")   : lang.getMessage("Time_Hours"))   : null;
-        String dStr   = d   != 0 ? d   + " " + (d   == 1 ? lang.getMessage("Time_Day")    : lang.getMessage("Time_Days"))    : null;
-        String wStr   = w   != 0 ? w   + " " + (w   == 1 ? lang.getMessage("Time_Week")   : lang.getMessage("Time_Weeks"))   : null;
-        String mStr   = m   != 0 ? m   + " " + (m   == 1 ? lang.getMessage("Time_Month")  : lang.getMessage("Time_Months"))  : null;
-        String yStr   = y   != 0 ? y   + " " + (y   == 1 ? lang.getMessage("Time_Year")   : lang.getMessage("Time_Years"))   : null;
+        String secStr = sec != 0 ? sec + " " + (sec == 1 ? lang.getMessage("unit.second.singular") : lang.getMessage("unit.second.plural")) : null;
+        String minStr = min != 0 ? min + " " + (min == 1 ? lang.getMessage("unit.minute.singular") : lang.getMessage("unit.minute.plural")) : null;
+        String hStr   = h   != 0 ? h   + " " + (h   == 1 ? lang.getMessage("unit.hour.singular")   : lang.getMessage("unit.hour.plural"))   : null;
+        String dStr   = d   != 0 ? d   + " " + (d   == 1 ? lang.getMessage("unit.day.singular")    : lang.getMessage("unit.day.plural"))    : null;
+        String wStr   = w   != 0 ? w   + " " + (w   == 1 ? lang.getMessage("unit.week.singular")   : lang.getMessage("unit.week.plural"))   : null;
+        String mStr   = m   != 0 ? m   + " " + (m   == 1 ? lang.getMessage("unit.month.singular")  : lang.getMessage("unit.month.plural"))  : null;
+        String yStr   = y   != 0 ? y   + " " + (y   == 1 ? lang.getMessage("unit.year.singular")   : lang.getMessage("unit.year.plural"))   : null;
 
         String r = (yStr   == null ? "" : yStr   + " ")
                 + (mStr   == null ? "" : mStr   + " ")
