@@ -11,10 +11,15 @@ import net.md_5.bungee.api.plugin.Command;
 import net.md_5.bungee.api.plugin.Plugin;
 
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class OnlineTimeCommand extends Command {
+
+    private static final Pattern UUID_PATTERN = Pattern.compile("([0-9a-f]{8})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{12})", Pattern.CASE_INSENSITIVE);
 
     private final Main plugin;
     private final Lang lang;
@@ -30,21 +35,36 @@ public class OnlineTimeCommand extends Command {
     @Override
     public void execute(CommandSender sender, String[] args) {
         if (args.length <= 1) {
-            String playerName;
-            if (args.length == 1) {
-                playerName = args[0];
-            } else if (sender instanceof ProxiedPlayer){
-                playerName = sender.getName();
-            } else {
-                sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetime.usage")).toComponent()).toComponent());
-                return;
-            }
             plugin.getProxy().getScheduler().runAsync(plugin, () -> {
-                long time = plugin.getOnlineTime(playerName);
+                final String playerName;
+                final UUID uuid;
+                if (args.length == 1) {
+                    Matcher uuidMatcher = UUID_PATTERN.matcher(args[0]);
+                    if (uuidMatcher.matches()) {
+                        uuid = UUID.fromString(uuidMatcher.group(1) + "-" + uuidMatcher.group(2) + "-" + uuidMatcher.group(3) + "-" + uuidMatcher.group(4) + "-" + uuidMatcher.group(5));
+                        playerName = plugin.getPlayerName(uuid);
+                    } else {
+                        playerName = args[0];
+                        uuid = plugin.getPlayerUuid(playerName);
+                    }
+                } else if (sender instanceof ProxiedPlayer){
+                    playerName = sender.getName();
+                    uuid = ((ProxiedPlayer) sender).getUniqueId();
+                } else {
+                    sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetime.usage")).toComponent()).toComponent());
+                    return;
+                }
+                long time;
+                if (uuid != null) {
+                    time = plugin.getOnlineTime(uuid);
+                } else {
+                    time = plugin.getOnlineTime(playerName);
+                }
+                String playerRepresentation = playerName != null ? playerName : uuid.toString();
                 if (time == 0) {
                     sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetime.notfound"))
                             .replace("server", serverName)
-                            .replace("player", playerName)
+                            .replace("player", playerRepresentation)
                             .toComponent()).toComponent());
                 } else {
                     if (Objects.equals(sender.getName(), playerName)) {
@@ -55,7 +75,7 @@ public class OnlineTimeCommand extends Command {
                     } else {
                         sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetime.timeseen.other"))
                                 .replace("server", serverName)
-                                .replace("player", playerName, "time", formatTime(time))
+                                .replace("player", playerRepresentation, "time", formatTime(time))
                                 .toComponent()).toComponent());
                     }
                 }

@@ -2,9 +2,7 @@ package mr.minecraft15.onlinetime;
 
 import de.themoep.minedown.MineDown;
 import mr.minecraft15.onlinetime.command.OnlineTimeCommand;
-import mr.minecraft15.onlinetime.command.TestMineDownCommand;
 import mr.minecraft15.onlinetime.listener.PlayerListener;
-import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.plugin.Plugin;
@@ -51,7 +49,6 @@ public class Main extends Plugin {
 
         PluginManager pluginManager = getProxy().getPluginManager();
         pluginManager.registerCommand(this, new OnlineTimeCommand(this, lang, serverName));
-        pluginManager.registerCommand(this, new TestMineDownCommand());
         pluginManager.registerListener(this, new PlayerListener(this, playerNameStorage));
     }
 
@@ -145,20 +142,37 @@ public class Main extends Plugin {
         this.onlineTimeStorage = new YamlOnlineTimeStorage(this,"time.yml", saveInterval);
     }
 
-    public long getOnlineTime(String playerName) {
+    public String getPlayerName(UUID uuid) {
+        ProxiedPlayer player = getProxy().getPlayer(uuid);
+        if (player != null) {
+            return player.getName();
+        }
         try {
-            ProxiedPlayer player = getProxy().getPlayer(playerName);
-            if (player != null) {
-                return getOnlineTime(player);
-            } else {
-                Optional<UUID> optionalUuid = playerNameStorage.getUuid(playerName);
-                if (!optionalUuid.isPresent()) {
-                    return 0;
-                }
-                return getOnlineTime(optionalUuid.get());
-            }
+            return playerNameStorage.getName(uuid).orElse(null);
         } catch (StorageException ex) {
-            getLogger().log(Level.WARNING, "could not get uuid of " + playerName, ex);
+            getLogger().log(Level.WARNING, "could not get player name of " + uuid.toString(), ex);
+            return null;
+        }
+    }
+
+    public UUID getPlayerUuid(String name) {
+        ProxiedPlayer player = getProxy().getPlayer(name);
+        if (player != null) {
+            return player.getUniqueId();
+        }
+        try {
+            return playerNameStorage.getUuid(name).orElse(null);
+        } catch (StorageException ex) {
+            getLogger().log(Level.WARNING, "could not get uuid of " + name, ex);
+            return null;
+        }
+    }
+
+    public long getOnlineTime(String playerName) {
+        UUID uuid = getPlayerUuid(playerName);
+        if (uuid != null) {
+            return getOnlineTime(uuid);
+        } else {
             return 0;
         }
     }
