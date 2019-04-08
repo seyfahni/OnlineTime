@@ -35,6 +35,6 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onPlayerDisconnect(PlayerDisconnectEvent e) {
         ProxiedPlayer p = e.getPlayer();
-        plugin.saveOnlineTime(p.getUniqueId());
+        plugin.saveOnlineTimeAfterDisconnect(p.getUniqueId());
     }
 }

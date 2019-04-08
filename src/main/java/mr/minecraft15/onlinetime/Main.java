@@ -14,14 +14,17 @@ import net.md_5.bungee.config.YamlConfiguration;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.HashMap;
-import java.util.Optional;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 public class Main extends Plugin {
     private static Plugin instance;
-    public static HashMap<UUID, Long> onlineSince = new HashMap<>();
+    public static ConcurrentMap<UUID, Long> onlineSince = new ConcurrentHashMap<>();
 
     private Configuration config;
 
@@ -50,6 +53,7 @@ public class Main extends Plugin {
         PluginManager pluginManager = getProxy().getPluginManager();
         pluginManager.registerCommand(this, new OnlineTimeCommand(this, lang, serverName));
         pluginManager.registerListener(this, new PlayerListener(this, playerNameStorage));
+        getProxy().getScheduler().schedule(this, this::flushOnlineTimeCache, saveInterval / 2L, saveInterval, TimeUnit.SECONDS);
     }
 
     @Override
@@ -191,10 +195,29 @@ public class Main extends Plugin {
         }
     }
 
+    public void saveOnlineTimeAfterDisconnect(UUID uuid) {
+        if (onlineSince.containsKey(uuid)) {
+            Long from = onlineSince.remove(uuid);
+            if (from == null) return; // concurrent change
+            long currentOnlineTime = (System.currentTimeMillis() - from) / 1000;
+            try {
+                onlineTimeStorage.addOnlineTime(uuid, currentOnlineTime);
+            } catch (StorageException ex) {
+                getLogger().log(Level.SEVERE, "could not save online time of " + uuid.toString(), ex);
+            }
+        }
+    }
+
+    public void flushOnlineTimeCache() {
+        new HashSet<>(onlineSince.keySet()).parallelStream().forEach(this::saveOnlineTime);
+    }
+
     public void saveOnlineTime(UUID uuid) {
         if (onlineSince.containsKey(uuid)) {
-            long currentOnlineTime = (System.currentTimeMillis() - onlineSince.get(uuid)) / 1000;
-            onlineSince.remove(uuid);
+            long now = System.currentTimeMillis();
+            Long from = onlineSince.replace(uuid, now);
+            if (from == null) return; // concurrent change
+            long currentOnlineTime = (now - from) / 1000;
             try {
                 onlineTimeStorage.addOnlineTime(uuid, currentOnlineTime);
             } catch (StorageException ex) {
