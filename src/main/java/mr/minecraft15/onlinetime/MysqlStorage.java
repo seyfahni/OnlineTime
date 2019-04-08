@@ -26,15 +26,16 @@ public class MysqlStorage implements PlayerNameStorage, OnlineTimeStorage {
     private PreparedStatement insertOrUpdateEntryStmnt;
 
     public MysqlStorage(Plugin plugin, String host, int port, String database, String username, String password) throws StorageException {
-        MysqlDataSource dataSource = new MysqlDataSource();
-        dataSource.setUrl(Objects.requireNonNull(host));
-        dataSource.setPortNumber(port);
-        dataSource.setUser(Objects.requireNonNull(username));
-        dataSource.setPassword(Objects.requireNonNull(password));
-        dataSource.setDatabaseName(Objects.requireNonNull(database));
         this.plugin = Objects.requireNonNull(plugin);
         this.rwLock = new ReentrantReadWriteLock();
         try {
+            MysqlDataSource dataSource = new MysqlDataSource();
+            dataSource.setServerName(Objects.requireNonNull(host));
+            dataSource.setPortNumber(port);
+            dataSource.setUser(Objects.requireNonNull(username));
+            dataSource.setPassword(Objects.requireNonNull(password));
+            dataSource.setDatabaseName(Objects.requireNonNull(database));
+            dataSource.setServerTimezone("UTC");
             this.connection = dataSource.getConnection();
             connection.createStatement().execute("CREATE TABLE IF NOT EXISTS `online_time` (" +
                     "`id`   INT NOT NULL AUTO_INCREMENT PRIMARY KEY," +
@@ -43,7 +44,7 @@ public class MysqlStorage implements PlayerNameStorage, OnlineTimeStorage {
                     "`time` BIGINT UNSIGNED NOT NULL DEFAULT 0" +
                     ") ENGINE InnoDB");
             getByUuidStmnt = connection.prepareStatement("SELECT `name`, `time` FROM `online_time` WHERE `uuid` = ?");
-            getByNameStmnt = connection.prepareStatement("SELECT HEX(`uuid`) AS uuid FROM `online_time` WHERE `name` = ?");
+            getByNameStmnt = connection.prepareStatement("SELECT `uuid` AS uuid FROM `online_time` WHERE `name` = ?");
             updateTimeStmnt = connection.prepareStatement("UPDATE `online_time` SET `time` = `time` + ? WHERE `uuid` = ?");
             unsetTakenNameStmnt = connection.prepareStatement("UPDATE `online_time` SET name = NULL WHERE `uuid` = ?");
             insertOrUpdateEntryStmnt = connection.prepareStatement("INSERT INTO `online_time` (`uuid`, `name`, `time`) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `name` = ?, `time` = `time` + ?");
@@ -106,9 +107,10 @@ public class MysqlStorage implements PlayerNameStorage, OnlineTimeStorage {
         rwLock.readLock().lock();
         try {
             checkClosed();
-            getByUuidStmnt.setString(1, name);
-            try (ResultSet result = getByUuidStmnt.executeQuery()) {
+            getByNameStmnt.setString(1, name);
+            try (ResultSet result = getByNameStmnt.executeQuery()) {
                 if (result.first()) {
+                    plugin.getLogger().info(fromBytes(result.getBytes("uuid")).toString());
                     return Optional.of(fromBytes(result.getBytes("uuid")));
                 }
             }
@@ -185,13 +187,13 @@ public class MysqlStorage implements PlayerNameStorage, OnlineTimeStorage {
     public static UUID fromBytes(byte[] bytes) {
         long msb = 0;
         for (int i = 0; i < 8; i++) {
-            msb |= (long) bytes[i];
-            msb <<= 8;
+            msb <<= 8L;
+            msb |= Byte.toUnsignedLong(bytes[i]);
         }
         long lsb = 0;
         for (int i = 8; i < 16; i++) {
-            lsb |= (long) bytes[i];
-            lsb <<= 8;
+            lsb <<= 8L;
+            lsb |= Byte.toUnsignedLong(bytes[i]);;
         }
         return new UUID(msb, lsb);
     }
