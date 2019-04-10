@@ -22,13 +22,14 @@ en:
       singular: 'year'
       plural: 'years'
   message:
+    nopermission: '&gray&You don''t have the required permissions to do that.'
     command:
       onlinetime:
-        usage: '[Use](gray) [/onlinetime [player]](dark_aqua) [to see a players onlinetime.](gray)'
-        notfound: '[The player](gray) [%player%](dark_aqua) [has not played on](gray) &gray&%server% [yet.](gray)'
+        usage: '&gray&Use [/onlinetime [player]](dark_aqua) to see a players onlinetime.'
+        notfound: '&gray&The player [%player%](dark_aqua) has not played on %server% yet.'
         timeseen:
-          self: '[You have played for](gray) [%time%](dark_aqua) [on](gray) &gray&%server%[.](gray)'
-          other: '[The player](gray) [%player%](dark_aqua) [has already played for](gray) [%time%](dark_aqua) [on](gray) &gray&%server%[.](gray).'
+          self: '&gray&You have played for [%time%](dark_aqua) on %server%.'
+          other: '&gray&The player [%player%](dark_aqua) has already played for [%time%](dark_aqua) on %server%.'
 de:
   unit:
     second:
@@ -53,10 +54,11 @@ de:
       singular: 'Jahr'
       plural: 'Jahre'
   message:
+    nopermission: '&gray&Dazu fehlen dir die Rechte.'
     command:
       onlinetime:
-        usage: '[Benutze](gray) [/onlinetime [Spieler]](dark_aqua) [um die Spielzeit anzuzeigen.](gray)'
-        notfound: '[Der Spieler](gray) [%player%](dark_aqua) [war noch nie auf](gray) &gray&%server%[.](gray)'
+        usage: '&gray&Benutze [/onlinetime [Spieler]](dark_aqua) um die Spielzeit anzuzeigen.'
+        notfound: '&gray&Der Spieler [%player%](dark_aqua) war noch nie auf %server%.'
         timeseen:
-          self: '[Du hast](gray) [%time%](dark_aqua) [auf](gray) &gray&%server% [gespielt.](gray)'
-          other: '[Der Spieler](gray) [%player%](dark_aqua) [hat](gray) [%time%](dark_aqua) [auf](gray) &gray&%server% [gespielt.](gray).'
+          self: '&gray&Du hast [%time%](dark_aqua) auf %server% gespielt.'
+          other: '&gray&Der Spieler [%player%](dark_aqua) hat [%time%](dark_aqua) auf %server% gespielt.'

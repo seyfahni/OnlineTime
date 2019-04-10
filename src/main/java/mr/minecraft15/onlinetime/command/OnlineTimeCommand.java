@@ -5,15 +5,11 @@ import mr.minecraft15.onlinetime.Lang;
 import mr.minecraft15.onlinetime.Main;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.BaseComponent;
-import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.plugin.Command;
-import net.md_5.bungee.api.plugin.Plugin;
 
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.FutureTask;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,6 +30,10 @@ public class OnlineTimeCommand extends Command {
 
     @Override
     public void execute(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("onlinetime.see")) {
+            printUtilityMessage(sender, "message.nopermission");
+            return;
+        }
         if (args.length <= 1) {
             plugin.getProxy().getScheduler().runAsync(plugin, () -> {
                 final String playerName;
@@ -51,7 +51,7 @@ public class OnlineTimeCommand extends Command {
                     playerName = sender.getName();
                     uuid = ((ProxiedPlayer) sender).getUniqueId();
                 } else {
-                    sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetime.usage")).toComponent()).toComponent());
+                    printUtilityMessage(sender, "message.command.onlinetime.usage");
                     return;
                 }
                 long time;
@@ -72,17 +72,23 @@ public class OnlineTimeCommand extends Command {
                                 .replace("server", serverName)
                                 .replace("time", formatTime(time))
                                 .toComponent()).toComponent());
-                    } else {
+                    } else if(sender.hasPermission("onlinetime.see.other")) {
                         sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetime.timeseen.other"))
                                 .replace("server", serverName)
                                 .replace("player", playerRepresentation, "time", formatTime(time))
                                 .toComponent()).toComponent());
+                    } else {
+                        printUtilityMessage(sender, "message.nopermission");
                     }
                 }
             });
         } else {
-            sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetime.usage")).toComponent()).toComponent());
+            printUtilityMessage(sender, "message.command.onlinetime.usage");
         }
+    }
+
+    private void printUtilityMessage(CommandSender sender, String messageKey) {
+        sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage(messageKey)).toComponent()).toComponent());
     }
 
     private String formatTime(long seconds) {
