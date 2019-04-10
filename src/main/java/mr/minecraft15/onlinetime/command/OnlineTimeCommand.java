@@ -62,21 +62,25 @@ public class OnlineTimeCommand extends Command {
                 }
                 String playerRepresentation = playerName != null ? playerName : uuid.toString();
                 if (time == 0) {
-                    sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetime.notfound"))
+                    if(sender.hasPermission("onlinetime.see.other")) {
+                        sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetime.notfound"))
                             .replace("server", serverName)
                             .replace("player", playerRepresentation)
                             .toComponent()).toComponent());
+                    } else {
+                        printUtilityMessage(sender, "message.nopermission");
+                    }
                 } else {
                     if (Objects.equals(sender.getName(), playerName)) {
                         sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetime.timeseen.self"))
-                                .replace("server", serverName)
-                                .replace("time", formatTime(time))
-                                .toComponent()).toComponent());
+                            .replace("server", serverName)
+                            .replace("time", formatTime(time))
+                            .toComponent()).toComponent());
                     } else if(sender.hasPermission("onlinetime.see.other")) {
                         sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetime.timeseen.other"))
-                                .replace("server", serverName)
-                                .replace("player", playerRepresentation, "time", formatTime(time))
-                                .toComponent()).toComponent());
+                            .replace("server", serverName)
+                            .replace("player", playerRepresentation, "time", formatTime(time))
+                            .toComponent()).toComponent());
                     } else {
                         printUtilityMessage(sender, "message.nopermission");
                     }
