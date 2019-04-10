@@ -40,7 +40,7 @@ public class MysqlStorage implements PlayerNameStorage, OnlineTimeStorage {
             mysqlDataSource.setServerTimezone("UTC");
             Objects.requireNonNull(database);
             try (Connection tempConnection = mysqlDataSource.getConnection()) {
-                tempConnection.createStatement().execute("CREATE DATABASE `" + database + "`");
+                tempConnection.createStatement().execute("CREATE DATABASE IF NOT EXISTS `" + database + "`");
             }
             mysqlDataSource.setDatabaseName(database);
             this.dataSource = mysqlDataSource;
