@@ -29,6 +29,7 @@
         <filtering>false</filtering>
         <excludes>
           <exclude>bungee.yml</exclude>
+          <exclude>database.properties</exclude>
         </excludes>
       </resource>
       <resource>
@@ -37,6 +38,7 @@
         <filtering>true</filtering>
         <includes>
           <include>bungee.yml</include>
+          <include>database.properties</include>
         </includes>
       </resource>
     </resources>
@@ -59,8 +61,12 @@
               <shadedPattern>${basePackage}.libraries.minedown</shadedPattern>
             </relocation>
             <relocation>
-              <pattern>com.mysql</pattern>
-              <shadedPattern>${basePackage}.libraries.mysql</shadedPattern>
+              <pattern>org.mariadb</pattern>
+              <shadedPattern>${basePackage}.libraries.mariadb</shadedPattern>
+            </relocation>
+            <relocation>
+              <pattern>com.zaxxer</pattern>
+              <shadedPattern>${basePackage}.libraries.hikaricp</shadedPattern>
             </relocation>
           </relocations>
         </configuration>
@@ -105,10 +111,13 @@
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>mysql</groupId>
-      <artifactId>mysql-connector-java</artifactId>
-      <version>8.0.15</version>
-      <scope>compile</scope>
+      <groupId>org.mariadb.jdbc</groupId>
+      <artifactId>mariadb-java-client</artifactId>
+      <version>2.4.1</version>
+    </dependency>    <dependency>
+      <groupId>com.zaxxer</groupId>
+      <artifactId>HikariCP</artifactId>
+      <version>3.3.1</version>
     </dependency>
   </dependencies>
 </project>

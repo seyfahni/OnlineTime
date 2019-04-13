@@ -35,11 +35,11 @@ import net.md_5.bungee.config.Configuration;
 import net.md_5.bungee.config.ConfigurationProvider;
 import net.md_5.bungee.config.YamlConfiguration;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.util.HashSet;
-import java.util.Set;
+import java.util.Locale;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -47,7 +47,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 public class Main extends Plugin {
-    private static Plugin instance;
     public static ConcurrentMap<UUID, Long> onlineSince = new ConcurrentHashMap<>();
 
     private Configuration config;
@@ -61,14 +60,8 @@ public class Main extends Plugin {
     private OnlineTimeStorage onlineTimeStorage;
     private PlayerNameStorage playerNameStorage;
 
-    public Main() {
-        instance = this;
-    }
-
     @Override
     public void onEnable() {
-        instance = this;
-
         if (!(loadConfig() && loadStorage())) {
             getProxy().getLogger().log(Level.SEVERE, "Could not enable OnlineTime!");
             return;
@@ -100,10 +93,6 @@ public class Main extends Plugin {
         }
     }
 
-    public static Plugin getInstance() {
-        return instance;
-    }
-
     public MineDown getFormattedMessage(BaseComponent... rawMessage) {
         return messageFormat.copy().replace("message", rawMessage);
     }
@@ -113,7 +102,7 @@ public class Main extends Plugin {
                 getDataFolder().mkdir();
             }
 
-            this.config = loadOrCreateConfigFile("config.yml");
+            this.config = loadOrCreateYamlConfig("config.yml");
             if (config == null) {
                 return false;
             }
@@ -122,32 +111,58 @@ public class Main extends Plugin {
             this.serverName = new MineDown(config.getString("servername", "this server")).toComponent();
             this.saveInterval = config.getLong("saveinterval", 30);
 
-            Configuration langConfig = loadOrCreateConfigFile("messages.yml");
+            Configuration langConfig = loadOrCreateYamlConfig("messages.yml");
             this.lang = new Lang(langConfig, config.getString("language"));
             return lang != null;
     }
 
-    private Configuration loadOrCreateConfigFile(String configFileName) {
+    private Configuration loadOrCreateYamlConfig(String configFileName) {
         try {
-            File configFile = new File(getDataFolder(), configFileName);
-            if (!configFile.exists()) {
-                Files.copy(getResourceAsStream(configFileName), configFile.toPath());
-            }
+            File configFile = getOrCreateConfigFile(configFileName);
             return ConfigurationProvider.getProvider(YamlConfiguration.class).load(configFile);
         } catch (IOException ioe) {
-            getLogger().log(Level.SEVERE, "could not load configuration file " + configFileName, ioe);
+            getLogger().log(Level.SEVERE, "could not load yaml configuration file " + configFileName, ioe);
             return null;
         }
     }
 
+    private File getOrCreateConfigFile(String configFileName) {
+        File configFile = new File(getDataFolder(), configFileName);
+        if (!configFile.exists()) {
+            try (InputStream input = getResourceAsStream(configFileName)) {
+                if (input != null) {
+                    Files.copy(input, configFile.toPath());
+                } else {
+                    configFile.createNewFile();
+                }
+            } catch (IOException ioe) {
+                getLogger().log(Level.SEVERE, "could not create configuration file " + configFileName, ioe);
+                return null;
+            }
+        }
+        return configFile;
+    }
+
     private boolean loadStorage() {
         try {
-            if (config.getBoolean("mysql.enabled", false)) {
-                loadMysqlStorage();
-            } else {
-                loadYamlStorage();
+            String storageMethod = config.getString("storage", "yaml");
+            switch (storageMethod.toLowerCase(Locale.ROOT)) {
+                case "yml":
+                case "yaml":
+                case "file":
+                    loadYamlStorage();
+                    return true;
+                case "sql":
+                case "mysql":
+                case "mariadb":
+                case "db":
+                case "database":
+                    loadMysqlStorage();
+                    return true;
+                default:
+                    getLogger().severe("illegal storage method " + storageMethod);
+                    return false;
             }
-            return true;
         } catch (StorageException ex) {
             getLogger().log(Level.SEVERE, "could not initialize storage", ex);
             return false;
@@ -155,12 +170,14 @@ public class Main extends Plugin {
     }
 
     private void loadMysqlStorage() throws StorageException {
-        String host = config.getString("mysql.host", "127.0.0.1");
-        int port = config.getInt("mysql.port", 3306);
-        String database = config.getString("mysql.database", "minecraft_database");
-        String username = config.getString("mysql.username", "minecraft_user");
-        String password = config.getString("mysql.password", "password");
-        MysqlStorage storage = new MysqlStorage(this, host, port, database, username, password);
+        Properties properties = new Properties();
+        File propertiesFile = getOrCreateConfigFile("database.properties");
+        try (Reader fileReader = new FileReader(propertiesFile); BufferedReader reader = new BufferedReader(fileReader)) {
+            properties.load(reader);
+        } catch (IOException ex) {
+            throw new StorageException(ex);
+        }
+        DatabaseStorage storage = new DatabaseStorage(this, properties);
         this.playerNameStorage = storage;
         this.onlineTimeStorage = storage;
     }
