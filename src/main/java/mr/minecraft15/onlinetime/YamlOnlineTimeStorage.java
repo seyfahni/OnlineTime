@@ -27,6 +27,7 @@ package mr.minecraft15.onlinetime;
 import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.api.scheduler.ScheduledTask;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalLong;
 import java.util.UUID;
@@ -87,6 +88,16 @@ public class YamlOnlineTimeStorage extends YamlStorage implements OnlineTimeStor
             changed.set(true);
         } finally {
             rwLock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public void addOnlineTimes(Map<UUID, Long> additionalOnlineTimes) throws StorageException {
+        if (additionalOnlineTimes == null) {
+            return;
+        }
+        for (Map.Entry<UUID, Long> entry : additionalOnlineTimes.entrySet()) {
+            addOnlineTime(entry.getKey(), entry.getValue());
         }
     }
 

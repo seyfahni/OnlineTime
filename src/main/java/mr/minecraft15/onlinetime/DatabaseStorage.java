@@ -44,7 +44,6 @@ public class DatabaseStorage implements PlayerNameStorage, OnlineTimeStorage {
 
     private static final String GET_BY_UUID_SQL = "SELECT `name`, `time` FROM `online_time` WHERE `uuid` = ?";
     private static final String GET_BY_NAME_SQL = "SELECT `uuid` AS uuid FROM `online_time` WHERE `name` = ?";
-    private static final String UPDATE_TIME_SQL = "UPDATE `online_time` SET `time` = `time` + ? WHERE `uuid` = ?";
     private static final String UNSET_TAKEN_NAME_SQL = "UPDATE `online_time` SET name = NULL WHERE `uuid` = ?";
     private static final String INSERT_OR_UPDATE_ENTRY_SQL = "INSERT INTO `online_time` (`uuid`, `name`, `time`) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `name` = ?, `time` = `time` + ?";
 
@@ -89,7 +88,6 @@ public class DatabaseStorage implements PlayerNameStorage, OnlineTimeStorage {
             getByNameStmnt.setString(1, name);
             try (ResultSet result = getByNameStmnt.executeQuery()) {
                 if (result.first()) {
-                    plugin.getLogger().info(fromBytes(result.getBytes("uuid")).toString());
                     return Optional.of(fromBytes(result.getBytes("uuid")));
                 } else {
                     return Optional.empty();
@@ -173,23 +171,61 @@ public class DatabaseStorage implements PlayerNameStorage, OnlineTimeStorage {
     }
 
     private void addOnlineTime(Connection connection, UUID uuid, long additionalOnlineTime) throws SQLException {
-        if (getName(connection, uuid).isPresent()) {
-            try (PreparedStatement updateTimeStmnt = connection.prepareStatement(UPDATE_TIME_SQL)) {
-                updateTimeStmnt.setLong(1, additionalOnlineTime);
-                updateTimeStmnt.setBytes(2, toBytes(uuid));
-                updateTimeStmnt.executeUpdate();
-            }
-        } else {
-            try (PreparedStatement insertOrUpdateEntryStmnt = connection.prepareStatement(INSERT_OR_UPDATE_ENTRY_SQL)) {
-                insertOrUpdateEntryStmnt.setBytes(1, toBytes(uuid));
+        try (PreparedStatement insertOrUpdateEntryStmnt = connection.prepareStatement(INSERT_OR_UPDATE_ENTRY_SQL)) {
+            Optional<String> name = getName(connection, uuid);
+            insertOrUpdateEntryStmnt.setBytes(1, toBytes(uuid));
+            if (name.isPresent()) {
+                insertOrUpdateEntryStmnt.setString(2, name.get());
+                insertOrUpdateEntryStmnt.setString(4, name.get());
+            } else {
                 insertOrUpdateEntryStmnt.setNull(2, Types.CHAR);
                 insertOrUpdateEntryStmnt.setNull(4, Types.CHAR);
-                insertOrUpdateEntryStmnt.setLong(3, additionalOnlineTime);
-                insertOrUpdateEntryStmnt.setLong(5, additionalOnlineTime);
-                insertOrUpdateEntryStmnt.executeUpdate();
             }
+            insertOrUpdateEntryStmnt.setLong(3, additionalOnlineTime);
+            insertOrUpdateEntryStmnt.setLong(5, additionalOnlineTime);
+            insertOrUpdateEntryStmnt.executeUpdate();
         }
     }
+
+    @Override
+    public void addOnlineTimes(Map<UUID, Long> additionalOnlineTimes) throws StorageException {
+        if (additionalOnlineTimes == null) {
+            return;
+        }
+        poolLock.readLock().lock();
+        try {
+            try (Connection connection = dataSource.getConnection()) {
+                addOnlineTimes(connection, additionalOnlineTimes);
+            }
+        } catch (SQLException ex) {
+            throw new StorageException(ex);
+        } finally {
+            poolLock.readLock().unlock();
+        }
+    }
+
+    private void addOnlineTimes(Connection connection, Map<UUID, Long> additionalOnlineTimes) throws SQLException {
+        try (PreparedStatement insertOrUpdateEntryStmnt = connection.prepareStatement(INSERT_OR_UPDATE_ENTRY_SQL)) {
+            for (Map.Entry<UUID, Long> entry : additionalOnlineTimes.entrySet()) {
+                UUID uuid = entry.getKey();
+                Optional<String> name = getName(connection, uuid);
+                long additionalOnlineTime = entry.getValue();
+                insertOrUpdateEntryStmnt.setBytes(1, toBytes(uuid));
+                if (name.isPresent()) {
+                    insertOrUpdateEntryStmnt.setString(2, name.get());
+                    insertOrUpdateEntryStmnt.setString(4, name.get());
+                } else {
+                    insertOrUpdateEntryStmnt.setNull(2, Types.CHAR);
+                    insertOrUpdateEntryStmnt.setNull(4, Types.CHAR);
+                }
+                insertOrUpdateEntryStmnt.setLong(3, additionalOnlineTime);
+                insertOrUpdateEntryStmnt.setLong(5, additionalOnlineTime);
+                insertOrUpdateEntryStmnt.addBatch();
+            }
+            insertOrUpdateEntryStmnt.executeBatch();
+        }
+    }
+
 
     @Override
     public void setEntry(UUID uuid, String name) throws StorageException {
@@ -223,6 +259,46 @@ public class DatabaseStorage implements PlayerNameStorage, OnlineTimeStorage {
             insertOrUpdateEntryStmnt.setLong(3, 0);
             insertOrUpdateEntryStmnt.setLong(5, 0);
             insertOrUpdateEntryStmnt.executeUpdate();
+        }
+    }
+
+    @Override
+    public void setEntries(Map<UUID, String> entries) throws StorageException {
+        if (entries == null) {
+            return;
+        }
+        poolLock.readLock().lock();
+        try {
+            try (Connection connection = dataSource.getConnection()) {
+                setEntries(connection, entries);
+            }
+        } catch (SQLException ex) {
+            throw new StorageException(ex);
+        } finally {
+            poolLock.readLock().unlock();
+        }
+    }
+
+    private void setEntries(Connection connection, Map<UUID, String> entries) throws SQLException {
+        try (PreparedStatement unsetTakenNameStmnt = connection.prepareStatement(UNSET_TAKEN_NAME_SQL);
+             PreparedStatement insertOrUpdateEntryStmnt = connection.prepareStatement(INSERT_OR_UPDATE_ENTRY_SQL)) {
+            for (Map.Entry<UUID, String> entry : entries.entrySet()) {
+                UUID uuid = entry.getKey();
+                String name = entry.getValue();
+                Optional<UUID> oldNameHolder = getUuid(connection, name);
+                if (oldNameHolder.filter(oldUuid -> !oldUuid.equals(uuid)).isPresent()) { // name not unique ? update on duplicate uuid
+                    unsetTakenNameStmnt.setBytes(1, toBytes(oldNameHolder.get()));
+                    unsetTakenNameStmnt.addBatch();
+                }
+                insertOrUpdateEntryStmnt.setBytes(1, toBytes(uuid));
+                insertOrUpdateEntryStmnt.setString(2, name);
+                insertOrUpdateEntryStmnt.setString(4, name);
+                insertOrUpdateEntryStmnt.setLong(3, 0);
+                insertOrUpdateEntryStmnt.setLong(5, 0);
+                insertOrUpdateEntryStmnt.addBatch();
+            }
+            unsetTakenNameStmnt.executeBatch();
+            insertOrUpdateEntryStmnt.executeBatch();
         }
     }
 

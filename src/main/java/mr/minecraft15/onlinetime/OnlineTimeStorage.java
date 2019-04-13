@@ -24,6 +24,7 @@
 
 package mr.minecraft15.onlinetime;
 
+import java.util.Map;
 import java.util.OptionalLong;
 import java.util.UUID;
 
@@ -46,6 +47,14 @@ public interface OnlineTimeStorage extends AutoCloseable {
      * @throws StorageException wrapping exceptions of the underlying storage implementation
      */
     void addOnlineTime(UUID uuid, long additionalOnlineTime) throws StorageException;
+
+    /**
+     * Increase the time in seconds that the players identified by the uuids have played by given amount and write the result back to storage.
+     *
+     * @param additionalOnlineTimes players and their amount to increase the online time by
+     * @throws StorageException wrapping exceptions of the underlying storage implementation
+     */
+    void addOnlineTimes(Map<UUID, Long> additionalOnlineTimes) throws StorageException;
 
     @Override
     void close() throws StorageException;

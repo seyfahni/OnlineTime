@@ -37,17 +37,14 @@ import net.md_5.bungee.config.YamlConfiguration;
 
 import java.io.*;
 import java.nio.file.Files;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Properties;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 public class Main extends Plugin {
-    public static ConcurrentMap<UUID, Long> onlineSince = new ConcurrentHashMap<>();
+    public final ConcurrentMap<UUID, Long> onlineSince = new ConcurrentHashMap<>();
 
     private Configuration config;
 
@@ -77,6 +74,7 @@ public class Main extends Plugin {
     public void onDisable() {
         getProxy().getPluginManager().unregisterCommands(this);
         getProxy().getPluginManager().unregisterListeners(this);
+        flushOnlineTimeCache();
         if (onlineTimeStorage != null) {
             try {
                 onlineTimeStorage.close();
@@ -250,20 +248,21 @@ public class Main extends Plugin {
     }
 
     public void flushOnlineTimeCache() {
-        new HashSet<>(onlineSince.keySet()).parallelStream().forEach(this::saveOnlineTime);
-    }
-
-    public void saveOnlineTime(UUID uuid) {
-        if (onlineSince.containsKey(uuid)) {
-            long now = System.currentTimeMillis();
+        if (onlineSince.isEmpty()) {
+            return;
+        }
+        final Map<UUID, Long> onlineTime = new HashMap<>();
+        final long now = System.currentTimeMillis();
+        onlineSince.keySet().forEach(uuid -> {
             Long from = onlineSince.replace(uuid, now);
-            if (from == null) return; // concurrent change
-            long currentOnlineTime = (now - from) / 1000;
-            try {
-                onlineTimeStorage.addOnlineTime(uuid, currentOnlineTime);
-            } catch (StorageException ex) {
-                getLogger().log(Level.SEVERE, "could not save online time of " + uuid.toString(), ex);
+            if (from != null) { // protect from concurrent change
+                onlineTime.put(uuid, (now - from) / 1000);
             }
+        });
+        try {
+            onlineTimeStorage.addOnlineTimes(onlineTime);
+        } catch (StorageException e) {
+            e.printStackTrace();
         }
     }
 }

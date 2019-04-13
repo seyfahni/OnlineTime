@@ -24,6 +24,7 @@
 
 package mr.minecraft15.onlinetime;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -61,6 +62,16 @@ public interface PlayerNameStorage extends AutoCloseable {
      * @throws StorageException wrapping exceptions of the underlying storage implementation
      */
     void setEntry(UUID uuid, String name) throws StorageException;
+
+    /**
+     * Write UUID name pairs to the storage.
+     * <br/>
+     * Duplicate uuids or name may be handled differently depending on implementation, but always written.
+     *
+     * @param names names of players identified by their uuid
+     * @throws StorageException wrapping exceptions of the underlying storage implementation
+     */
+    void setEntries(Map<UUID, String> entries) throws StorageException;
 
     @Override
     void close() throws StorageException;

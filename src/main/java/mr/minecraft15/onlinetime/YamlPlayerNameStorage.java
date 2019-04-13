@@ -28,6 +28,7 @@ import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.api.scheduler.ScheduledTask;
 import net.md_5.bungee.config.Configuration;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -103,6 +104,16 @@ public class YamlPlayerNameStorage extends YamlStorage implements PlayerNameStor
             changed.set(true);
         } finally {
             rwLock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public void setEntries(Map<UUID, String> entries) throws StorageException {
+        if (entries == null) {
+            return;
+        }
+        for (Map.Entry<UUID, String> entry : entries.entrySet()) {
+            setEntry(entry.getKey(), entry.getValue());
         }
     }
 
