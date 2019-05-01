@@ -28,7 +28,6 @@ import de.themoep.minedown.MineDown;
 import mr.minecraft15.onlinetime.command.OnlineTimeAdminCommand;
 import mr.minecraft15.onlinetime.command.OnlineTimeCommand;
 import mr.minecraft15.onlinetime.listener.PlayerListener;
-import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.plugin.Plugin;
@@ -38,7 +37,6 @@ import net.md_5.bungee.config.ConfigurationProvider;
 import net.md_5.bungee.config.YamlConfiguration;
 
 import java.io.*;
-import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -118,6 +116,7 @@ public class Main extends Plugin {
 
         this.config = loadOrCreateYamlConfig("config.yml");
         if (config == null) {
+            getLogger().severe("Could not load main configuration.");
             return false;
         }
 
@@ -126,6 +125,7 @@ public class Main extends Plugin {
             getLogger().warning("Old configuration found! Migrating...");
             boolean success = migrateConfig(currentConfigVersion);
             if (!success) {
+                getLogger().severe("Could not migrate from old configuration.");
                 return false;
             }
         }
@@ -136,6 +136,7 @@ public class Main extends Plugin {
 
         Configuration langConfig = loadOrCreateYamlConfig("messages.yml");
         if (langConfig == null) {
+            getLogger().severe("Could not load language configuration.");
             return false;
         }
         String defaultLanguage = config.getString("language");
@@ -151,6 +152,7 @@ public class Main extends Plugin {
                     .addUnit(60 * 60 * 24 * 30 * 12, getUnits(langConfig, defaultLanguage, "year"))
                     .build();
         } catch (IllegalArgumentException ex) {
+            getLogger().log(Level.SEVERE, "Could not create time parser.", ex);
             return false;
         }
         return true;
@@ -185,9 +187,9 @@ public class Main extends Plugin {
     }
 
     private String[] getUnits(Configuration langConfig, String language, String unit) {
-        String singular = langConfig.getString(language + ".unit." + unit + "singular");
-        String plural = langConfig.getString(language + ".unit." + unit + "plural");
-        List<?> identifier = langConfig.getList(language + ".unit." + unit + "identifier");
+        String singular = langConfig.getString(language + ".unit." + unit + ".singular");
+        String plural = langConfig.getString(language + ".unit." + unit + ".plural");
+        List<?> identifier = langConfig.getList(language + ".unit." + unit + ".identifier");
         Set<String> units = new HashSet<>();
         units.add(singular);
         units.add(plural);
