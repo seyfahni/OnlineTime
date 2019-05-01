@@ -25,8 +25,10 @@
 package mr.minecraft15.onlinetime;
 
 import de.themoep.minedown.MineDown;
+import mr.minecraft15.onlinetime.command.OnlineTimeAdminCommand;
 import mr.minecraft15.onlinetime.command.OnlineTimeCommand;
 import mr.minecraft15.onlinetime.listener.PlayerListener;
+import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.plugin.Plugin;
@@ -42,14 +44,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 public class Main extends Plugin {
+
+    public static final Pattern UUID_PATTERN = Pattern.compile("([0-9a-f]{8})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{12})", Pattern.CASE_INSENSITIVE);
+
     public final ConcurrentMap<UUID, Long> onlineSince = new ConcurrentHashMap<>();
 
     private Configuration config;
 
     private MineDown messageFormat;
     private Lang lang;
+    private TimeParser parser;
+
     private BaseComponent[] serverName;
 
     private long saveInterval;
@@ -65,7 +73,8 @@ public class Main extends Plugin {
         }
 
         PluginManager pluginManager = getProxy().getPluginManager();
-        pluginManager.registerCommand(this, new OnlineTimeCommand(this, lang, serverName));
+        pluginManager.registerCommand(this, new OnlineTimeCommand(this, lang));
+        pluginManager.registerCommand(this, new OnlineTimeAdminCommand(this, lang, parser));
         pluginManager.registerListener(this, new PlayerListener(this, playerNameStorage));
         getProxy().getScheduler().schedule(this, this::flushOnlineTimeCache, saveInterval / 2L, saveInterval, TimeUnit.SECONDS);
     }
@@ -95,6 +104,10 @@ public class Main extends Plugin {
         return messageFormat.copy().replace("message", rawMessage);
     }
 
+    public BaseComponent[] getServerName() {
+        return Arrays.copyOf(serverName, serverName.length);
+    }
+
     private boolean loadConfig() {
             if (!getDataFolder().exists()) {
                 getDataFolder().mkdir();
@@ -110,8 +123,40 @@ public class Main extends Plugin {
             this.saveInterval = config.getLong("saveinterval", 30);
 
             Configuration langConfig = loadOrCreateYamlConfig("messages.yml");
-            this.lang = new Lang(langConfig, config.getString("language"));
-            return lang != null;
+        String defaultLanguage = config.getString("language");
+        this.lang = new Lang(langConfig, defaultLanguage);
+        try {
+            parser = TimeParser.builder()
+                    .addUnit(1, getUnits(langConfig, defaultLanguage, "second"))
+                    .addUnit(60, getUnits(langConfig, defaultLanguage, "minute"))
+                    .addUnit(60 * 60, getUnits(langConfig, defaultLanguage, "hour"))
+                    .addUnit(60 * 60 * 24, getUnits(langConfig, defaultLanguage, "day"))
+                    .addUnit(60 * 60 * 24 * 7, getUnits(langConfig, defaultLanguage, "week"))
+                    .addUnit(60 * 60 * 24 * 30, getUnits(langConfig, defaultLanguage, "month"))
+                    .addUnit(60 * 60 * 24 * 30 * 12, getUnits(langConfig, defaultLanguage, "year"))
+                    .build();
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
+        return true;
+    }
+
+    private String[] getUnits(Configuration langConfig, String language, String unit) {
+        String singular = langConfig.getString(language + ".unit." + unit + "singular");
+        String plural = langConfig.getString(language + ".unit." + unit + "plural");
+        List<?> identifier = langConfig.getList(language + ".unit." + unit + "identifier");
+        Set<String> units = new HashSet<>();
+        units.add(singular);
+        units.add(plural);
+        for (Object content : identifier) {
+            if (content instanceof String) {
+                units.add((String) content);
+            } else {
+                getLogger().warning("dangerous identifier definition (messages.yml): " + language + ".unit." + unit + "identifier: " + content.toString());
+                units.add(content.toString());
+            }
+        }
+        return units.toArray(new String[0]);
     }
 
     private Configuration loadOrCreateYamlConfig(String configFileName) {
@@ -234,6 +279,33 @@ public class Main extends Plugin {
         }
     }
 
+    public boolean modifyOnlineTime(String playerName, long modifyBy) {
+        UUID uuid = getPlayerUuid(playerName);
+        if (uuid != null) {
+            return modifyOnlineTime(uuid, modifyBy);
+        } else {
+            return false;
+        }
+    }
+
+    public boolean modifyOnlineTime(ProxiedPlayer player, long modifyBy) {
+        return modifyOnlineTime(player.getUniqueId(), modifyBy);
+    }
+
+    public boolean modifyOnlineTime(UUID uuid, final long modifyBy) {
+        if (null != onlineSince.computeIfPresent(uuid, (key, value) -> value + modifyBy)) {
+            return true;
+        } else {
+            try {
+                onlineTimeStorage.addOnlineTime(uuid, modifyBy);
+                return true;
+            } catch (StorageException ex) {
+                getLogger().log(Level.SEVERE, "could not modify online time of " + uuid.toString(), ex);
+                return false;
+            }
+        }
+    }
+
     public void saveOnlineTimeAfterDisconnect(UUID uuid) {
         if (onlineSince.containsKey(uuid)) {
             Long from = onlineSince.remove(uuid);
@@ -261,8 +333,8 @@ public class Main extends Plugin {
         });
         try {
             onlineTimeStorage.addOnlineTimes(onlineTime);
-        } catch (StorageException e) {
-            e.printStackTrace();
+        } catch (StorageException ex) {
+            getLogger().log(Level.SEVERE, "could not flush online time cache", ex);
         }
     }
 }
