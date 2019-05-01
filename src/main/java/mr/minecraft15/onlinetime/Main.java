@@ -38,7 +38,9 @@ import net.md_5.bungee.config.ConfigurationProvider;
 import net.md_5.bungee.config.YamlConfiguration;
 
 import java.io.*;
+import java.nio.file.CopyOption;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -49,6 +51,7 @@ import java.util.regex.Pattern;
 public class Main extends Plugin {
 
     public static final Pattern UUID_PATTERN = Pattern.compile("([0-9a-f]{8})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{12})", Pattern.CASE_INSENSITIVE);
+    private static final int CONFIG_VERSION = 1;
 
     public final ConcurrentMap<UUID, Long> onlineSince = new ConcurrentHashMap<>();
 
@@ -109,20 +112,32 @@ public class Main extends Plugin {
     }
 
     private boolean loadConfig() {
-            if (!getDataFolder().exists()) {
-                getDataFolder().mkdir();
-            }
+        if (!getDataFolder().exists()) {
+            getDataFolder().mkdir();
+        }
 
-            this.config = loadOrCreateYamlConfig("config.yml");
-            if (config == null) {
+        this.config = loadOrCreateYamlConfig("config.yml");
+        if (config == null) {
+            return false;
+        }
+
+        int currentConfigVersion = config.getInt("configversion", 0);
+        if (currentConfigVersion != CONFIG_VERSION) {
+            getLogger().warning("Old configuration found! Migrating...");
+            boolean success = migrateConfig(currentConfigVersion);
+            if (!success) {
                 return false;
             }
+        }
 
-            this.messageFormat = new MineDown(config.getString("messageformat"));
-            this.serverName = new MineDown(config.getString("servername", "this server")).toComponent();
-            this.saveInterval = config.getLong("saveinterval", 30);
+        this.messageFormat = new MineDown(config.getString("messageformat"));
+        this.serverName = new MineDown(config.getString("servername", "this server")).toComponent();
+        this.saveInterval = config.getLong("saveinterval", 30);
 
-            Configuration langConfig = loadOrCreateYamlConfig("messages.yml");
+        Configuration langConfig = loadOrCreateYamlConfig("messages.yml");
+        if (langConfig == null) {
+            return false;
+        }
         String defaultLanguage = config.getString("language");
         this.lang = new Lang(langConfig, defaultLanguage);
         try {
@@ -139,6 +154,34 @@ public class Main extends Plugin {
             return false;
         }
         return true;
+    }
+
+    private boolean migrateConfig(int currentConfigVersion) {
+        switch (currentConfigVersion) {
+            case 0:
+                getLogger().warning("Unspecified config version. Creating config backup and resetting everything...");
+                return backupAndRecreateConfig();
+            default:
+                getLogger().severe("Illegal config version! Creating config backup and resetting everything...");
+                return backupAndRecreateConfig();
+        }
+    }
+
+    private boolean backupAndRecreateConfig() {
+        Path configFilePath = new File(getDataFolder(), "config.yml").toPath();
+        Path messagesFilePath = new File(getDataFolder(), "messages.yml").toPath();
+        Path databaseFilePath = new File(getDataFolder(), "database.properties").toPath();
+        try {
+            Files.move(configFilePath, configFilePath.resolveSibling("config.old.yml"));
+            Files.move(messagesFilePath, messagesFilePath.resolveSibling("messages.old.yml"));
+            Files.move(databaseFilePath, databaseFilePath.resolveSibling("database.old.properties"));
+
+            this.config = loadOrCreateYamlConfig("config.yml");
+            return config != null;
+        } catch (IOException ex) {
+            getLogger().log(Level.SEVERE, "Could not backup old configuration, aborting mirgation...", ex);
+            return false;
+        }
     }
 
     private String[] getUnits(Configuration langConfig, String language, String unit) {
