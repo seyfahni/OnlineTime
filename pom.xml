@@ -98,12 +98,12 @@
 
   <repositories>
     <repository>
-      <id>papermc-release-repo</id>
-      <url>https://papermc.io/repo/repository/maven-releases/</url>
-    </repository>
-    <repository>
       <id>papermc-snapshot-repo</id>
       <url>https://papermc.io/repo/repository/maven-snapshots/</url>
+      <snapshots>
+        <enabled>true</enabled>
+        <updatePolicy>daily</updatePolicy>
+      </snapshots>
     </repository>
     <repository>
       <id>minebench-repo</id>
@@ -115,7 +115,7 @@
     <dependency>
       <groupId>io.github.waterfallmc</groupId>
       <artifactId>waterfall-api</artifactId>
-      <version>1.13-SNAPSHOT</version>
+      <version>1.14-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
