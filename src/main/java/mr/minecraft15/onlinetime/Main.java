@@ -32,6 +32,7 @@ import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.api.plugin.PluginManager;
+import net.md_5.bungee.api.scheduler.ScheduledTask;
 import net.md_5.bungee.config.Configuration;
 import net.md_5.bungee.config.ConfigurationProvider;
 import net.md_5.bungee.config.YamlConfiguration;
@@ -66,6 +67,8 @@ public class Main extends Plugin {
     private OnlineTimeStorage onlineTimeStorage;
     private PlayerNameStorage playerNameStorage;
 
+    private ScheduledTask flushCacheTask;
+
     @Override
     public void onEnable() {
         if (!(loadConfig() && loadStorage())) {
@@ -77,13 +80,14 @@ public class Main extends Plugin {
         pluginManager.registerCommand(this, new OnlineTimeCommand(this, lang));
         pluginManager.registerCommand(this, new OnlineTimeAdminCommand(this, lang, parser));
         pluginManager.registerListener(this, new PlayerListener(this, playerNameStorage));
-        getProxy().getScheduler().schedule(this, this::flushOnlineTimeCache, saveInterval / 2L, saveInterval, TimeUnit.SECONDS);
+        flushCacheTask = getProxy().getScheduler().schedule(this, this::flushOnlineTimeCache, saveInterval / 2L, saveInterval, TimeUnit.SECONDS);
     }
 
     @Override
     public void onDisable() {
         getProxy().getPluginManager().unregisterCommands(this);
         getProxy().getPluginManager().unregisterListeners(this);
+        flushCacheTask.cancel();
         flushOnlineTimeCache();
         if (onlineTimeStorage != null) {
             try {
