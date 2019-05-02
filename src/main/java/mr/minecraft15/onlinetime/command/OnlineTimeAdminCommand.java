@@ -148,6 +148,7 @@ public class OnlineTimeAdminCommand extends Command {
             sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetimeadmin.modify.negativetimesum"))
                     .replace("server", serverName)
                     .replace("player", player.representation)
+                    .replace("time", TimeUtil.formatTime(time, lang))
                     .toComponent()).toComponent());
             return;
         }

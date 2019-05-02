@@ -181,7 +181,7 @@ public class DatabaseStorage implements PlayerNameStorage, OnlineTimeStorage {
                 insertOrUpdateEntryStmnt.setNull(2, Types.CHAR);
                 insertOrUpdateEntryStmnt.setNull(4, Types.CHAR);
             }
-            insertOrUpdateEntryStmnt.setLong(3, additionalOnlineTime);
+            insertOrUpdateEntryStmnt.setLong(3, Math.max(0, additionalOnlineTime));
             insertOrUpdateEntryStmnt.setLong(5, additionalOnlineTime);
             insertOrUpdateEntryStmnt.executeUpdate();
         }
