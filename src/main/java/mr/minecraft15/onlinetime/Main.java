@@ -52,7 +52,7 @@ public class Main extends Plugin {
     public static final Pattern UUID_PATTERN = Pattern.compile("([0-9a-f]{8})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{12})", Pattern.CASE_INSENSITIVE);
     private static final int CONFIG_VERSION = 1;
 
-    public final ConcurrentMap<UUID, Long> onlineSince = new ConcurrentHashMap<>();
+    private final ConcurrentMap<UUID, Long> onlineSince = new ConcurrentHashMap<>();
 
     private Configuration config;
 
@@ -342,7 +342,7 @@ public class Main extends Plugin {
     }
 
     public boolean modifyOnlineTime(UUID uuid, final long modifyBy) {
-        if (null != onlineSince.computeIfPresent(uuid, (key, value) -> value + modifyBy)) {
+        if (null != onlineSince.computeIfPresent(uuid, (key, value) -> value - modifyBy * 1000)) {
             return true;
         } else {
             try {
@@ -353,6 +353,10 @@ public class Main extends Plugin {
                 return false;
             }
         }
+    }
+
+    public void registerOnlineTimeStart(UUID uuid, long when) {
+        onlineSince.put(uuid, when);
     }
 
     public void saveOnlineTimeAfterDisconnect(UUID uuid) {

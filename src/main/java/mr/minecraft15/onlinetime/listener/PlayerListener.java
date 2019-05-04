@@ -53,7 +53,7 @@ public class PlayerListener implements Listener {
         } catch (StorageException ex) {
             plugin.getLogger().log(Level.WARNING, "could not save player name and uuid", ex);
         }
-        plugin.onlineSince.put(p.getUniqueId(), System.currentTimeMillis());
+        plugin.registerOnlineTimeStart(p.getUniqueId(), System.currentTimeMillis());
     }
 
     @EventHandler
