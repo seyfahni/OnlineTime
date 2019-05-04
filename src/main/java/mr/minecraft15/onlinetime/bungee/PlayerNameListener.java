@@ -27,7 +27,6 @@ package mr.minecraft15.onlinetime.bungee;
 import mr.minecraft15.onlinetime.common.PlayerNameStorage;
 import mr.minecraft15.onlinetime.common.StorageException;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
-import net.md_5.bungee.api.event.PlayerDisconnectEvent;
 import net.md_5.bungee.api.event.PostLoginEvent;
 import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.event.EventHandler;
@@ -35,12 +34,12 @@ import net.md_5.bungee.event.EventHandler;
 import java.util.UUID;
 import java.util.logging.Level;
 
-public class PlayerListener implements Listener {
+public class PlayerNameListener implements Listener {
 
     private final Main plugin;
     private final PlayerNameStorage nameStorage;
 
-    public PlayerListener(Main plugin, PlayerNameStorage nameStorage) {
+    public PlayerNameListener(Main plugin, PlayerNameStorage nameStorage) {
         this.plugin = plugin;
         this.nameStorage = nameStorage;
     }
@@ -50,21 +49,12 @@ public class PlayerListener implements Listener {
         ProxiedPlayer player = event.getPlayer();
         final UUID uuid = player.getUniqueId();
         final String name = player.getName();
-        final long now = System.currentTimeMillis();
         plugin.getProxy().getScheduler().runAsync(plugin, () -> {
             try {
                 nameStorage.setEntry(uuid, name);
             } catch (StorageException ex) {
-                plugin.getLogger().log(Level.WARNING, "could not save player name and uuid", ex);
+                plugin.getLogger().log(Level.WARNING, "could not save player name and uuid " + name, ex);
             }
-            plugin.registerOnlineTimeStart(uuid, now);
         });
-    }
-
-    @EventHandler
-    public void onPlayerDisconnect(PlayerDisconnectEvent event) {
-        final UUID uuid = event.getPlayer().getUniqueId();
-        final long now = System.currentTimeMillis();
-        plugin.getProxy().getScheduler().runAsync(plugin, () -> plugin.saveOnlineTimeAfterDisconnect(uuid, now));
     }
 }

@@ -39,8 +39,6 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
@@ -49,8 +47,6 @@ public class Main extends Plugin {
 
     public static final Pattern UUID_PATTERN = Pattern.compile("([0-9a-f]{8})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{12})", Pattern.CASE_INSENSITIVE);
     private static final int CONFIG_VERSION = 1;
-
-    private final ConcurrentMap<UUID, Long> onlineSince = new ConcurrentHashMap<>();
 
     private Configuration config;
 
@@ -62,7 +58,7 @@ public class Main extends Plugin {
 
     private long saveInterval;
 
-    private OnlineTimeStorage onlineTimeStorage;
+    private AccumulatingOnlineTimeStorage onlineTimeStorage;
     private PlayerNameStorage playerNameStorage;
 
     private ScheduledTask flushCacheTask;
@@ -77,7 +73,8 @@ public class Main extends Plugin {
         PluginManager pluginManager = getProxy().getPluginManager();
         pluginManager.registerCommand(this, new OnlineTimeCommand(this, lang));
         pluginManager.registerCommand(this, new OnlineTimeAdminCommand(this, lang, parser));
-        pluginManager.registerListener(this, new PlayerListener(this, playerNameStorage));
+        pluginManager.registerListener(this, new PlayerNameListener(this, playerNameStorage));
+        pluginManager.registerListener(this, new OnlineTimeAccumulatorListener(this, onlineTimeStorage));
         flushCacheTask = getProxy().getScheduler().schedule(this, this::flushOnlineTimeCache, saveInterval / 2L, saveInterval, TimeUnit.SECONDS);
     }
 
@@ -269,12 +266,12 @@ public class Main extends Plugin {
         }
         DatabaseStorage storage = new DatabaseStorage(this, properties);
         this.playerNameStorage = storage;
-        this.onlineTimeStorage = storage;
+        this.onlineTimeStorage = new AccumulatingOnlineTimeStorage(storage);
     }
 
     private void loadYamlStorage() throws StorageException {
         this.playerNameStorage = new YamlPlayerNameStorage(this, "names.yml", saveInterval);
-        this.onlineTimeStorage = new YamlOnlineTimeStorage(this,"time.yml", saveInterval);
+        this.onlineTimeStorage = new AccumulatingOnlineTimeStorage(new YamlOnlineTimeStorage(this,"time.yml", saveInterval));
     }
 
     public String getPlayerName(UUID uuid) {
@@ -318,11 +315,10 @@ public class Main extends Plugin {
 
     public long getOnlineTime(UUID uuid) {
         try {
-            long currentOnlineTime = onlineSince.containsKey(uuid) ? (System.currentTimeMillis() - onlineSince.get(uuid)) / 1000 : 0;
-            return currentOnlineTime + onlineTimeStorage.getOnlineTime(uuid).orElse(0L);
+            return onlineTimeStorage.getOnlineTime(uuid).orElse(0L);
         } catch (StorageException ex) {
             getLogger().log(Level.WARNING, "could not get online time of " + uuid.toString(), ex);
-            return 0;
+            return 0L;
         }
     }
 
@@ -340,50 +336,18 @@ public class Main extends Plugin {
     }
 
     public boolean modifyOnlineTime(UUID uuid, final long modifyBy) {
-        if (null != onlineSince.computeIfPresent(uuid, (key, value) -> value - modifyBy * 1000)) {
-            return true;
-        } else {
-            try {
-                onlineTimeStorage.addOnlineTime(uuid, modifyBy);
-                return true;
-            } catch (StorageException ex) {
-                getLogger().log(Level.SEVERE, "could not modify online time of " + uuid.toString(), ex);
-                return false;
-            }
-        }
-    }
-
-    public void registerOnlineTimeStart(UUID uuid, long when) {
-        onlineSince.put(uuid, when);
-    }
-
-    public void saveOnlineTimeAfterDisconnect(UUID uuid, long when) {
-        if (onlineSince.containsKey(uuid)) {
-            Long from = onlineSince.remove(uuid);
-            if (from == null) return; // concurrent change
-            long currentOnlineTime = (when - from) / 1000;
-            try {
-                onlineTimeStorage.addOnlineTime(uuid, currentOnlineTime);
-            } catch (StorageException ex) {
-                getLogger().log(Level.SEVERE, "could not save online time of " + uuid.toString(), ex);
-            }
-        }
-    }
-
-    public void flushOnlineTimeCache() {
-        if (onlineSince.isEmpty()) {
-            return;
-        }
-        final Map<UUID, Long> onlineTime = new HashMap<>();
-        final long now = System.currentTimeMillis();
-        onlineSince.keySet().forEach(uuid -> {
-            Long from = onlineSince.replace(uuid, now);
-            if (from != null) { // protect from concurrent change
-                onlineTime.put(uuid, (now - from) / 1000);
-            }
-        });
         try {
-            onlineTimeStorage.addOnlineTimes(onlineTime);
+            onlineTimeStorage.addOnlineTime(uuid, modifyBy);
+            return true;
+        } catch (StorageException ex) {
+            getLogger().log(Level.SEVERE, "could not modify online time of " + uuid.toString(), ex);
+            return false;
+        }
+    }
+
+    private void flushOnlineTimeCache() {
+        try {
+            onlineTimeStorage.flushOnlineTimeCache();
         } catch (StorageException ex) {
             getLogger().log(Level.SEVERE, "could not flush online time cache", ex);
         }
