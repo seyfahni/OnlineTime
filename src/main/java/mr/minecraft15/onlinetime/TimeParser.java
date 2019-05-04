@@ -33,7 +33,7 @@ public final class TimeParser {
 
     private static final String LONG_REGEX = "(\\+|-)?[0-9]+";
     private static final Pattern LONG_PATTERN = Pattern.compile(LONG_REGEX);
-    private static final Pattern UNIT_PATTERN = Pattern.compile("[a-z]+");
+    private static final Pattern UNIT_PATTERN = Pattern.compile("\\p{Alpha}+", Pattern.UNICODE_CHARACTER_CLASS);
 
     public static Builder builder() {
         return new Builder();
@@ -51,7 +51,7 @@ public final class TimeParser {
     }
 
     public OptionalLong parseToSeconds(String representation) {
-        String raw = representation.trim().toLowerCase(Locale.ROOT);
+        String raw = representation.trim();
         if (!globalPattern.matcher(raw).matches()) {
             return OptionalLong.empty();
         }
@@ -91,12 +91,12 @@ public final class TimeParser {
                     if (!UNIT_PATTERN.matcher(symbol).matches()) {
                         throw new IllegalArgumentException("invalid unit symbol: " + symbol);
                     }
-                    if (units.keySet().contains(symbol.toLowerCase(Locale.ROOT))) {
+                    if (units.keySet().contains(symbol)) {
                         throw new IllegalArgumentException("duplicate unit symbol: " + symbol);
                     }
                 }
                 for (String symbol : unitSymbols) {
-                    units.put(symbol.toLowerCase(Locale.ROOT), inSeconds);
+                    units.put(symbol, inSeconds);
                 }
             }
             return this;
