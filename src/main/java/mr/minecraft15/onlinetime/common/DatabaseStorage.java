@@ -26,7 +26,6 @@ package mr.minecraft15.onlinetime.common;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import net.md_5.bungee.api.plugin.Plugin;
 
 import java.sql.*;
 import java.util.*;
@@ -47,13 +46,10 @@ public class DatabaseStorage implements PlayerNameStorage, OnlineTimeStorage {
     private static final String UNSET_TAKEN_NAME_SQL = "UPDATE `online_time` SET name = NULL WHERE `uuid` = ?";
     private static final String INSERT_OR_UPDATE_ENTRY_SQL = "INSERT INTO `online_time` (`uuid`, `name`, `time`) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `name` = ?, `time` = `time` + ?";
 
-    private final Plugin plugin;
-
     private final HikariDataSource dataSource;
     private final ReadWriteLock poolLock;
 
-    public DatabaseStorage(Plugin plugin, Properties properties) throws StorageException {
-        this.plugin = Objects.requireNonNull(plugin);
+    public DatabaseStorage(Properties properties) throws StorageException {
         this.poolLock = new ReentrantReadWriteLock();
 
         HikariConfig databaseConfig = new HikariConfig(properties);

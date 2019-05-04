@@ -264,7 +264,7 @@ public class Main extends Plugin {
         } catch (IOException ex) {
             throw new StorageException(ex);
         }
-        DatabaseStorage storage = new DatabaseStorage(this, properties);
+        DatabaseStorage storage = new DatabaseStorage(properties);
         this.playerNameStorage = storage;
         this.onlineTimeStorage = new AccumulatingOnlineTimeStorage(storage);
     }
