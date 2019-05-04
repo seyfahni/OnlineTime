@@ -33,6 +33,7 @@ import net.md_5.bungee.api.event.PostLoginEvent;
 import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.event.EventHandler;
 
+import java.util.UUID;
 import java.util.logging.Level;
 
 public class PlayerListener implements Listener {
@@ -46,19 +47,25 @@ public class PlayerListener implements Listener {
     }
 
     @EventHandler
-    public void onPlayerLogin(PostLoginEvent e) {
-        ProxiedPlayer p = e.getPlayer();
-        try {
-            nameStorage.setEntry(p.getUniqueId(), p.getName());
-        } catch (StorageException ex) {
-            plugin.getLogger().log(Level.WARNING, "could not save player name and uuid", ex);
-        }
-        plugin.registerOnlineTimeStart(p.getUniqueId(), System.currentTimeMillis());
+    public void onPlayerLogin(PostLoginEvent event) {
+        ProxiedPlayer player = event.getPlayer();
+        final UUID uuid = player.getUniqueId();
+        final String name = player.getName();
+        final long now = System.currentTimeMillis();
+        plugin.getProxy().getScheduler().runAsync(plugin, () -> {
+            try {
+                nameStorage.setEntry(uuid, name);
+            } catch (StorageException ex) {
+                plugin.getLogger().log(Level.WARNING, "could not save player name and uuid", ex);
+            }
+            plugin.registerOnlineTimeStart(uuid, now);
+        });
     }
 
     @EventHandler
-    public void onPlayerDisconnect(PlayerDisconnectEvent e) {
-        ProxiedPlayer p = e.getPlayer();
-        plugin.saveOnlineTimeAfterDisconnect(p.getUniqueId());
+    public void onPlayerDisconnect(PlayerDisconnectEvent event) {
+        final UUID uuid = event.getPlayer().getUniqueId();
+        final long now = System.currentTimeMillis();
+        plugin.getProxy().getScheduler().runAsync(plugin, () -> plugin.saveOnlineTimeAfterDisconnect(uuid, now));
     }
 }

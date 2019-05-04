@@ -359,11 +359,11 @@ public class Main extends Plugin {
         onlineSince.put(uuid, when);
     }
 
-    public void saveOnlineTimeAfterDisconnect(UUID uuid) {
+    public void saveOnlineTimeAfterDisconnect(UUID uuid, long when) {
         if (onlineSince.containsKey(uuid)) {
             Long from = onlineSince.remove(uuid);
             if (from == null) return; // concurrent change
-            long currentOnlineTime = (System.currentTimeMillis() - from) / 1000;
+            long currentOnlineTime = (when - from) / 1000;
             try {
                 onlineTimeStorage.addOnlineTime(uuid, currentOnlineTime);
             } catch (StorageException ex) {
