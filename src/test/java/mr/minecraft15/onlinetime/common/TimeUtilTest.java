@@ -1,11 +1,12 @@
-package mr.minecraft15.onlinetime;
+package mr.minecraft15.onlinetime.common;
 
+import mr.minecraft15.onlinetime.common.Lang;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import static mr.minecraft15.onlinetime.TimeUtil.*;
+import static mr.minecraft15.onlinetime.common.TimeUtil.*;
 
 public class TimeUtilTest {
 

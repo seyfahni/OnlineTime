@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package mr.minecraft15.onlinetime;
+package mr.minecraft15.onlinetime.common;
 
 public class StorageException extends Exception {
 

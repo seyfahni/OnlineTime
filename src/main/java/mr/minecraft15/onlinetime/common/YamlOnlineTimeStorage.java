@@ -22,15 +22,14 @@
  * SOFTWARE.
  */
 
-package mr.minecraft15.onlinetime;
+package mr.minecraft15.onlinetime.common;
 
 import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.api.scheduler.ScheduledTask;
-import net.md_5.bungee.config.Configuration;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -38,7 +37,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 
-public class YamlPlayerNameStorage extends YamlStorage implements PlayerNameStorage {
+public class YamlOnlineTimeStorage extends YamlStorage implements OnlineTimeStorage {
 
     private final ReadWriteLock rwLock;
     private final ScheduledTask saveTask;
@@ -46,14 +45,14 @@ public class YamlPlayerNameStorage extends YamlStorage implements PlayerNameStor
     private volatile boolean closed;
 
     /**
-     * Create a player name storage. Updated data will be written to permanent storage every saveInterval seconds.
+     * Create an online time storage. Updated data will be written to permanent storage every saveInterval seconds.
      *
      * @param plugin the associated plugin
      * @param storageFileName the name of the storage file
      * @param saveInterval the interval in seconds to save changes
      * @throws StorageException if the storage file can't be read or written
      */
-    public YamlPlayerNameStorage(Plugin plugin, String storageFileName, long saveInterval) throws StorageException {
+    public YamlOnlineTimeStorage(Plugin plugin, String storageFileName, long saveInterval) throws StorageException {
         super(plugin, storageFileName);
         this.rwLock = new ReentrantReadWriteLock();
         this.saveTask = plugin.getProxy().getScheduler().schedule(plugin, this::saveChangesSecure, saveInterval, saveInterval, TimeUnit.SECONDS);
@@ -61,16 +60,17 @@ public class YamlPlayerNameStorage extends YamlStorage implements PlayerNameStor
     }
 
     @Override
-    public Optional<UUID> getUuid(String playerName) throws StorageException {
-        Objects.requireNonNull(playerName);
+    public OptionalLong getOnlineTime(UUID uuid) throws StorageException {
+        Objects.requireNonNull(uuid);
         checkClosed();
+        String path = uuid.toString();
         rwLock.readLock().lock();
         try {
             checkClosed();
-            if (!getStorage().contains(playerName)) {
-                return Optional.empty();
+            if (!getStorage().contains(path)) {
+                return OptionalLong.empty();
             } else {
-                return Optional.of(UUID.fromString(getStorage().getString(playerName)));
+                return OptionalLong.of(getStorage().getInt(path));
             }
         } finally {
             rwLock.readLock().unlock();
@@ -78,29 +78,13 @@ public class YamlPlayerNameStorage extends YamlStorage implements PlayerNameStor
     }
 
     @Override
-    public Optional<String> getName(UUID uuid) throws StorageException {
+    public void addOnlineTime(UUID uuid, long additionalOnlineTime) throws StorageException {
         Objects.requireNonNull(uuid);
-        checkClosed();
-        String uuidString = uuid.toString();
-        rwLock.readLock().lock();
-        try {
-            checkClosed();
-            Configuration storage = getStorage();
-            return storage.getKeys().parallelStream().filter(key -> Objects.equals(storage.getString(key), uuidString)).findFirst();
-        } finally {
-            rwLock.readLock().unlock();
-        }
-    }
-
-    @Override
-    public void setEntry(UUID uuid, String name) throws StorageException {
-        Objects.requireNonNull(uuid);
-        Objects.requireNonNull(name);
         checkClosed();
         rwLock.writeLock().lock();
         try {
             checkClosed();
-            getStorage().set(name, uuid.toString());
+            getStorage().set(uuid.toString(), getOnlineTime(uuid).orElse(0) + additionalOnlineTime);
             changed.set(true);
         } finally {
             rwLock.writeLock().unlock();
@@ -108,12 +92,12 @@ public class YamlPlayerNameStorage extends YamlStorage implements PlayerNameStor
     }
 
     @Override
-    public void setEntries(Map<UUID, String> entries) throws StorageException {
-        if (entries == null) {
+    public void addOnlineTimes(Map<UUID, Long> additionalOnlineTimes) throws StorageException {
+        if (additionalOnlineTimes == null) {
             return;
         }
-        for (Map.Entry<UUID, String> entry : entries.entrySet()) {
-            setEntry(entry.getKey(), entry.getValue());
+        for (Map.Entry<UUID, Long> entry : additionalOnlineTimes.entrySet()) {
+            addOnlineTime(entry.getKey(), entry.getValue());
         }
     }
 
@@ -127,7 +111,7 @@ public class YamlPlayerNameStorage extends YamlStorage implements PlayerNameStor
         try {
             saveChanges();
         } catch (StorageException e) {
-            plugin.getLogger().log(Level.SEVERE, "could not write player name storage", e);
+            plugin.getLogger().log(Level.SEVERE, "could not write online time storage", e);
         }
     }
 

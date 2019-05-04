@@ -1,5 +1,6 @@
-package mr.minecraft15.onlinetime;
+package mr.minecraft15.onlinetime.common;
 
+import mr.minecraft15.onlinetime.common.TimeParser;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

@@ -22,56 +22,39 @@
  * SOFTWARE.
  */
 
-package mr.minecraft15.onlinetime;
+package mr.minecraft15.onlinetime.common;
 
 import java.util.Map;
-import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.UUID;
 
-public interface PlayerNameStorage extends AutoCloseable {
+public interface OnlineTimeStorage extends AutoCloseable {
 
     /**
-     * Retrieve the UUID from storage that is associated with the player's name.
-     * <br/>
-     * Be aware, that multiple names may be associated with one uuid. Please refer to the implementing class' documentation.
+     * Retrieve the time in seconds from storage that the player identified by the uuid has played.
      *
-     * @param playerName name to search for (exact match)
-     * @return the player's UUID
+     * @param uuid uuid identifying the player
+     * @return the player's online time
      * @throws StorageException wrapping exceptions of the underlying storage implementation
      */
-    Optional<UUID> getUuid(String playerName) throws StorageException;
+    OptionalLong getOnlineTime(UUID uuid) throws StorageException;
 
     /**
-     * Retrieve the name from storage that is associated with the player's UUID.
-     * <br/>
-     * Be aware, that multiple uuids may be associated with one name. Please refer to the implementing class' documentation.
-     *
-     * @param uuid uuid to search for
-     * @return the player's name
-     * @throws StorageException wrapping exceptions of the underlying storage implementation
-     */
-    Optional<String> getName(UUID uuid) throws StorageException;
-
-    /**
-     * Write a UUID name-pair association to the storage.
-     * <br/>
-     * Duplicate uuids or name may be handled differently depending on implementation, but always written.
+     * Increase the time in seconds that the player identified by the uuid has played by given amount and write the result back to storage.
      *
      * @param uuid uuid of player
-     * @param name name of player
+     * @param additionalOnlineTime amount to increase the online time by
      * @throws StorageException wrapping exceptions of the underlying storage implementation
      */
-    void setEntry(UUID uuid, String name) throws StorageException;
+    void addOnlineTime(UUID uuid, long additionalOnlineTime) throws StorageException;
 
     /**
-     * Write UUID name pairs to the storage.
-     * <br/>
-     * Duplicate uuids or name may be handled differently depending on implementation, but always written.
+     * Increase the time in seconds that the players identified by the uuids have played by given amount and write the result back to storage.
      *
-     * @param names names of players identified by their uuid
+     * @param additionalOnlineTimes players and their amount to increase the online time by
      * @throws StorageException wrapping exceptions of the underlying storage implementation
      */
-    void setEntries(Map<UUID, String> entries) throws StorageException;
+    void addOnlineTimes(Map<UUID, Long> additionalOnlineTimes) throws StorageException;
 
     @Override
     void close() throws StorageException;

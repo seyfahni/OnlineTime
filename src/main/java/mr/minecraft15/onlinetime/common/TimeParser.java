@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package mr.minecraft15.onlinetime;
+package mr.minecraft15.onlinetime.common;
 
 import java.util.*;
 import java.util.regex.Matcher;

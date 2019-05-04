@@ -22,12 +22,10 @@
  * SOFTWARE.
  */
 
-package mr.minecraft15.onlinetime.command;
+package mr.minecraft15.onlinetime.common;
 
 import de.themoep.minedown.MineDown;
-import mr.minecraft15.onlinetime.Lang;
-import mr.minecraft15.onlinetime.Main;
-import mr.minecraft15.onlinetime.TimeUtil;
+import mr.minecraft15.onlinetime.bungee.Main;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.connection.ProxiedPlayer;

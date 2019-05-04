@@ -22,11 +22,10 @@
  * SOFTWARE.
  */
 
-package mr.minecraft15.onlinetime.listener;
+package mr.minecraft15.onlinetime.bungee;
 
-import mr.minecraft15.onlinetime.Main;
-import mr.minecraft15.onlinetime.PlayerNameStorage;
-import mr.minecraft15.onlinetime.StorageException;
+import mr.minecraft15.onlinetime.common.PlayerNameStorage;
+import mr.minecraft15.onlinetime.common.StorageException;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.event.PlayerDisconnectEvent;
 import net.md_5.bungee.api.event.PostLoginEvent;
