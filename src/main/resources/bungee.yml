@@ -1,4 +1,4 @@
 main: '${basePackage}.bungee.Main'
 name: '${name}'
 version: '${version}'
-author: 'Mr_Minecraft15'
+author: 'seyfahni and Mr_Minecraft15'

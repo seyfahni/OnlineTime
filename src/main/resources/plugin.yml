@@ -1,0 +1,29 @@
+main: '${basePackage}.bukkit.Main'
+name: '${name}'
+version: '${version}'
+api-version: '1.13'
+author: 'seyfahni'
+website: 'https://github.com/seyfahni/OnlineTime'
+commands:
+  onlinetime:
+    aliases:
+      - 'onlinet'
+      - 'otime'
+      - 'ot'
+    description: 'Show online time.'
+  onlinetimeadmin:
+    aliases:
+      - 'onlinetimea'
+      - 'otadmin'
+      - 'ota'
+    description: 'Edit online time.'
+permissions:
+  onlinetime.see:
+    default: true
+    description: 'Allows seeing your own online time.'
+  onlinetime.see.other:
+    default: op
+    description: 'Allows seeing the online time of other players.'
+  onlinetime.admin:
+    default: op
+    description: 'Allows modifying the online time of all players.'
