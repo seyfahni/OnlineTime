@@ -24,20 +24,46 @@
 
 package mr.minecraft15.onlinetime.bukkit;
 
-import mr.minecraft15.onlinetime.api.PluginScheduler;
-import org.bukkit.plugin.java.JavaPlugin;
+import de.themoep.minedown.MineDown;
+import mr.minecraft15.onlinetime.api.PlayerData;
+import mr.minecraft15.onlinetime.api.PluginCommandSender;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
-public class Main extends JavaPlugin {
+import java.util.Optional;
 
-    private PluginScheduler scheduler;
+public class BukkitCommandSenderAdapter implements PluginCommandSender {
 
-    @Override
-    public void onEnable() {
-        this.scheduler = new BukkitSchedulerAdapter(this, getServer().getScheduler());
+    private final CommandSender sender;
+    private final Optional<PlayerData> player;
+
+    public BukkitCommandSenderAdapter(CommandSender sender) {
+        this.sender = sender;
+        if (sender instanceof Player) {
+            Player player = (Player) sender;
+            this.player = Optional.of(new PlayerData(player.getUniqueId(), Optional.of(player.getName())));
+        } else {
+            this.player = Optional.empty();
+        }
     }
 
     @Override
-    public void onDisable() {
+    public boolean hasPermission(String permissionNode) {
+        return sender.hasPermission(permissionNode);
+    }
 
+    @Override
+    public void sendMessage(MineDown message) {
+        sender.sendMessage(message.toComponent());
+    }
+
+    @Override
+    public boolean isPlayer() {
+        return sender instanceof Player;
+    }
+
+    @Override
+    public Optional<PlayerData> asPlayer() {
+        return player;
     }
 }

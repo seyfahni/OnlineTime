@@ -24,36 +24,33 @@
 
 package mr.minecraft15.onlinetime.bukkit;
 
-import mr.minecraft15.onlinetime.common.PlayerNameStorage;
-import mr.minecraft15.onlinetime.common.StorageException;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.player.PlayerJoinEvent;
+import mr.minecraft15.onlinetime.api.PluginScheduler;
+import mr.minecraft15.onlinetime.api.PluginTask;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitScheduler;
 
-import java.util.UUID;
-import java.util.logging.Level;
+public class BukkitSchedulerAdapter implements PluginScheduler {
 
-public class PlayerNameListener {
+    private final Plugin plugin;
+    private final BukkitScheduler scheduler;
 
-    private final Main plugin;
-    private final PlayerNameStorage nameStorage;
-
-    public PlayerNameListener(Main plugin, PlayerNameStorage nameStorage) {
+    public BukkitSchedulerAdapter(Plugin plugin, BukkitScheduler scheduler) {
         this.plugin = plugin;
-        this.nameStorage = nameStorage;
+        this.scheduler = scheduler;
     }
 
-    @EventHandler
-    public void onPlayerLogin(PlayerJoinEvent event) {
-        Player player = event.getPlayer();
-        final UUID uuid = player.getUniqueId();
-        final String name = player.getName();
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            try {
-                nameStorage.setEntry(uuid, name);
-            } catch (StorageException ex) {
-                plugin.getLogger().log(Level.WARNING, "could not save player name and uuid " + name, ex);
-            }
-        });
+    @Override
+    public PluginTask runAsyncOnce(Runnable task) {
+        return new BukkitTaskAdapter(scheduler.runTaskAsynchronously(plugin, task));
+    }
+
+    @Override
+    public PluginTask runAsyncOnceLater(long delay, Runnable task) {
+        return new BukkitTaskAdapter(scheduler.runTaskLater(plugin, task, delay * 20));
+    }
+
+    @Override
+    public PluginTask scheduleAsync(long delay, long interval, Runnable task) {
+        return new BukkitTaskAdapter(scheduler.runTaskTimerAsynchronously(plugin, task, delay * 20, interval * 20));
     }
 }

@@ -24,20 +24,36 @@
 
 package mr.minecraft15.onlinetime.bukkit;
 
-import mr.minecraft15.onlinetime.api.PluginScheduler;
-import org.bukkit.plugin.java.JavaPlugin;
+import mr.minecraft15.onlinetime.common.PlayerNameStorage;
+import mr.minecraft15.onlinetime.common.StorageException;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.player.PlayerJoinEvent;
 
-public class Main extends JavaPlugin {
+import java.util.UUID;
+import java.util.logging.Level;
 
-    private PluginScheduler scheduler;
+public class PlayerNameBukkitListener {
 
-    @Override
-    public void onEnable() {
-        this.scheduler = new BukkitSchedulerAdapter(this, getServer().getScheduler());
+    private final Main plugin;
+    private final PlayerNameStorage nameStorage;
+
+    public PlayerNameBukkitListener(Main plugin, PlayerNameStorage nameStorage) {
+        this.plugin = plugin;
+        this.nameStorage = nameStorage;
     }
 
-    @Override
-    public void onDisable() {
-
+    @EventHandler
+    public void onPlayerLogin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        final UUID uuid = player.getUniqueId();
+        final String name = player.getName();
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                nameStorage.setEntry(uuid, name);
+            } catch (StorageException ex) {
+                plugin.getLogger().log(Level.WARNING, "could not save player name and uuid " + name, ex);
+            }
+        });
     }
 }

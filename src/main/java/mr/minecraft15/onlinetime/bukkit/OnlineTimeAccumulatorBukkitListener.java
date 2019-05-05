@@ -35,12 +35,12 @@ import org.bukkit.plugin.Plugin;
 import java.util.UUID;
 import java.util.logging.Level;
 
-public class OnlineTimeAccumulatorListener implements Listener {
+public class OnlineTimeAccumulatorBukkitListener implements Listener {
 
     private final Plugin plugin;
     private final AccumulatingOnlineTimeStorage timeStorage;
 
-    public OnlineTimeAccumulatorListener(Plugin plugin, AccumulatingOnlineTimeStorage timeStorage) {
+    public OnlineTimeAccumulatorBukkitListener(Plugin plugin, AccumulatingOnlineTimeStorage timeStorage) {
         this.plugin = plugin;
         this.timeStorage = timeStorage;
     }

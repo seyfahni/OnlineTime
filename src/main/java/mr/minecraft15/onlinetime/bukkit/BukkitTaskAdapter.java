@@ -24,20 +24,19 @@
 
 package mr.minecraft15.onlinetime.bukkit;
 
-import mr.minecraft15.onlinetime.api.PluginScheduler;
-import org.bukkit.plugin.java.JavaPlugin;
+import mr.minecraft15.onlinetime.api.PluginTask;
+import org.bukkit.scheduler.BukkitTask;
 
-public class Main extends JavaPlugin {
+public class BukkitTaskAdapter implements PluginTask {
 
-    private PluginScheduler scheduler;
+    private final BukkitTask task;
 
-    @Override
-    public void onEnable() {
-        this.scheduler = new BukkitSchedulerAdapter(this, getServer().getScheduler());
+    public BukkitTaskAdapter(BukkitTask task) {
+        this.task = task;
     }
 
     @Override
-    public void onDisable() {
-
+    public void cancel() {
+        task.cancel();
     }
 }
