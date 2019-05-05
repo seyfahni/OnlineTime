@@ -29,12 +29,13 @@ import mr.minecraft15.onlinetime.common.PlayerNameStorage;
 import mr.minecraft15.onlinetime.common.StorageException;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
 import java.util.UUID;
 import java.util.logging.Level;
 
-public class PlayerNameBukkitListener {
+public class PlayerNameBukkitListener implements Listener {
 
     private final PluginProxy plugin;
     private final PlayerNameStorage nameStorage;

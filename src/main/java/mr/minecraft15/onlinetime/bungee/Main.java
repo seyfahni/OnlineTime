@@ -72,7 +72,7 @@ public class Main extends Plugin implements PluginProxy {
         this.scheduler = new BungeeSchedulerAdapter(this, getProxy().getScheduler());
 
         if (!(loadConfig() && loadStorage())) {
-            getProxy().getLogger().log(Level.SEVERE, "Could not enable OnlineTime!");
+            getLogger().log(Level.SEVERE, "Could not enable OnlineTime!");
             return;
         }
 
