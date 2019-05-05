@@ -25,6 +25,9 @@
 package mr.minecraft15.onlinetime.bungee;
 
 import de.themoep.minedown.MineDown;
+import mr.minecraft15.onlinetime.api.PlayerData;
+import mr.minecraft15.onlinetime.api.PluginProxy;
+import mr.minecraft15.onlinetime.api.PluginScheduler;
 import mr.minecraft15.onlinetime.common.*;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
@@ -41,17 +44,18 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
-public class Main extends Plugin {
+public class Main extends Plugin implements PluginProxy {
 
-    public static final Pattern UUID_PATTERN = Pattern.compile("([0-9a-f]{8})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{12})", Pattern.CASE_INSENSITIVE);
     private static final int CONFIG_VERSION = 1;
 
     private Configuration config;
 
+    private PluginScheduler scheduler;
+
     private MineDown messageFormat;
-    private Lang lang;
+    private Localization localization;
     private TimeParser parser;
 
     private BaseComponent[] serverName;
@@ -65,16 +69,22 @@ public class Main extends Plugin {
 
     @Override
     public void onEnable() {
+        this.scheduler = new BungeeSchedulerAdapter(this, getProxy().getScheduler());
+
         if (!(loadConfig() && loadStorage())) {
             getProxy().getLogger().log(Level.SEVERE, "Could not enable OnlineTime!");
             return;
         }
 
         PluginManager pluginManager = getProxy().getPluginManager();
-        pluginManager.registerCommand(this, new OnlineTimeCommand(this, lang));
-        pluginManager.registerCommand(this, new OnlineTimeAdminCommand(this, lang, parser));
-        pluginManager.registerListener(this, new PlayerNameListener(this, playerNameStorage));
-        pluginManager.registerListener(this, new OnlineTimeAccumulatorListener(this, onlineTimeStorage));
+        pluginManager.registerCommand(this, new PluginCommandBungeeAdapter(
+                new OnlineTimeCommand(this, localization, onlineTimeStorage),
+                "onlinetime", "onlinet", "otime", "ot"));
+        pluginManager.registerCommand(this, new PluginCommandBungeeAdapter(
+                new OnlineTimeAdminCommand(this, localization, parser, onlineTimeStorage),
+                "onlinetimeadmin", "ota", "otadmin", "onlinetimea"));
+        pluginManager.registerListener(this, new PlayerNameBungeeListener(this, playerNameStorage));
+        pluginManager.registerListener(this, new OnlineTimeAccumulatorBungeeListener(this, onlineTimeStorage));
         flushCacheTask = getProxy().getScheduler().schedule(this, this::flushOnlineTimeCache, saveInterval / 2L, saveInterval, TimeUnit.SECONDS);
     }
 
@@ -100,12 +110,12 @@ public class Main extends Plugin {
         }
     }
 
-    public MineDown getFormattedMessage(BaseComponent... rawMessage) {
-        return messageFormat.copy().replace("message", rawMessage);
-    }
-
-    public BaseComponent[] getServerName() {
-        return Arrays.copyOf(serverName, serverName.length);
+    @Override
+    public MineDown getFormattedMessage(MineDown rawMessage) {
+        return messageFormat.copy()
+                .replace("message", rawMessage
+                    .replace("server", serverName)
+                    .toComponent());
     }
 
     private boolean loadConfig() {
@@ -138,17 +148,17 @@ public class Main extends Plugin {
             getLogger().severe("Could not load language configuration.");
             return false;
         }
-        String defaultLanguage = config.getString("language");
-        this.lang = new Lang(langConfig, defaultLanguage);
+        String language = config.getString("language");
+        this.localization = loadLocalization(langConfig, language);
         try {
             parser = TimeParser.builder()
-                    .addUnit(1, getUnits(langConfig, defaultLanguage, "second"))
-                    .addUnit(60, getUnits(langConfig, defaultLanguage, "minute"))
-                    .addUnit(60 * 60, getUnits(langConfig, defaultLanguage, "hour"))
-                    .addUnit(60 * 60 * 24, getUnits(langConfig, defaultLanguage, "day"))
-                    .addUnit(60 * 60 * 24 * 7, getUnits(langConfig, defaultLanguage, "week"))
-                    .addUnit(60 * 60 * 24 * 30, getUnits(langConfig, defaultLanguage, "month"))
-                    .addUnit(60 * 60 * 24 * 30 * 12, getUnits(langConfig, defaultLanguage, "year"))
+                    .addUnit(1, getUnits(langConfig, language, "second"))
+                    .addUnit(60, getUnits(langConfig, language, "minute"))
+                    .addUnit(60 * 60, getUnits(langConfig, language, "hour"))
+                    .addUnit(60 * 60 * 24, getUnits(langConfig, language, "day"))
+                    .addUnit(60 * 60 * 24 * 7, getUnits(langConfig, language, "week"))
+                    .addUnit(60 * 60 * 24 * 30, getUnits(langConfig, language, "month"))
+                    .addUnit(60 * 60 * 24 * 30 * 12, getUnits(langConfig, language, "year"))
                     .build();
         } catch (IllegalArgumentException ex) {
             getLogger().log(Level.SEVERE, "Could not create time parser.", ex);
@@ -183,6 +193,34 @@ public class Main extends Plugin {
             getLogger().log(Level.SEVERE, "Could not backup old configuration, aborting mirgation...", ex);
             return false;
         }
+    }
+
+    private Localization loadLocalization(Configuration langConfig, String language) {
+        Configuration translationConfig = langConfig.getSection(language);
+        Map<String, String> translations = new HashMap<>();
+        for (String key : translationConfig.getKeys()) {
+            Object part = translationConfig.get(key, null);
+            if (part instanceof Configuration) {
+                translations.putAll(translationRecursive(translationConfig, key));
+            } else if (part instanceof String) {
+                translations.put(key, (String) part);
+            }// else ignore
+        }
+        return new Localization(translations);
+    }
+
+    private Map<String, String> translationRecursive(Configuration translationConfig, String basePath) {
+        Map<String, String> translations = new HashMap<>();
+        Configuration currentConfig = basePath.isEmpty() ? translationConfig : translationConfig.getSection(basePath);
+        for (String key : currentConfig.getKeys()) {
+            Object part = currentConfig.get(key, null);
+            if (part instanceof Configuration) {
+                translations.putAll(translationRecursive(translationConfig, basePath + "." + key));
+            } else if (part instanceof String) {
+                translations.put(basePath + "." + key, (String) part);
+            } // else ignore
+        }
+        return translations;
     }
 
     private String[] getUnits(Configuration langConfig, String language, String unit) {
@@ -274,74 +312,29 @@ public class Main extends Plugin {
         this.onlineTimeStorage = new AccumulatingOnlineTimeStorage(new YamlOnlineTimeStorage(this,"time.yml", saveInterval));
     }
 
-    public String getPlayerName(UUID uuid) {
+    private Optional<String> getOptionalPlayerName(UUID uuid) {
         ProxiedPlayer player = getProxy().getPlayer(uuid);
         if (player != null) {
-            return player.getName();
+            return Optional.of(player.getName());
         }
         try {
-            return playerNameStorage.getName(uuid).orElse(null);
+            return playerNameStorage.getName(uuid);
         } catch (StorageException ex) {
             getLogger().log(Level.WARNING, "could not get player name of " + uuid.toString(), ex);
-            return null;
+            return Optional.empty();
         }
     }
 
-    public UUID getPlayerUuid(String name) {
+    private Optional<UUID> getOptionalPlayerUuid(String name) {
         ProxiedPlayer player = getProxy().getPlayer(name);
         if (player != null) {
-            return player.getUniqueId();
+            return Optional.of(player.getUniqueId());
         }
         try {
-            return playerNameStorage.getUuid(name).orElse(null);
+            return playerNameStorage.getUuid(name);
         } catch (StorageException ex) {
             getLogger().log(Level.WARNING, "could not get uuid of " + name, ex);
-            return null;
-        }
-    }
-
-    public long getOnlineTime(String playerName) {
-        UUID uuid = getPlayerUuid(playerName);
-        if (uuid != null) {
-            return getOnlineTime(uuid);
-        } else {
-            return 0;
-        }
-    }
-
-    public long getOnlineTime(ProxiedPlayer player) {
-        return getOnlineTime(player.getUniqueId());
-    }
-
-    public long getOnlineTime(UUID uuid) {
-        try {
-            return onlineTimeStorage.getOnlineTime(uuid).orElse(0L);
-        } catch (StorageException ex) {
-            getLogger().log(Level.WARNING, "could not get online time of " + uuid.toString(), ex);
-            return 0L;
-        }
-    }
-
-    public boolean modifyOnlineTime(String playerName, long modifyBy) {
-        UUID uuid = getPlayerUuid(playerName);
-        if (uuid != null) {
-            return modifyOnlineTime(uuid, modifyBy);
-        } else {
-            return false;
-        }
-    }
-
-    public boolean modifyOnlineTime(ProxiedPlayer player, long modifyBy) {
-        return modifyOnlineTime(player.getUniqueId(), modifyBy);
-    }
-
-    public boolean modifyOnlineTime(UUID uuid, final long modifyBy) {
-        try {
-            onlineTimeStorage.addOnlineTime(uuid, modifyBy);
-            return true;
-        } catch (StorageException ex) {
-            getLogger().log(Level.SEVERE, "could not modify online time of " + uuid.toString(), ex);
-            return false;
+            return Optional.empty();
         }
     }
 
@@ -350,6 +343,24 @@ public class Main extends Plugin {
             onlineTimeStorage.flushOnlineTimeCache();
         } catch (StorageException ex) {
             getLogger().log(Level.SEVERE, "could not flush online time cache", ex);
+        }
+    }
+
+    @Override
+    public PluginScheduler getScheduler() {
+        return scheduler;
+    }
+
+    @Override
+    public Optional<PlayerData> findPlayer(String identifier) {
+        Matcher uuidMatcher = UuidUtil.UUID_PATTERN.matcher(identifier);
+        if (uuidMatcher.matches()) {
+            UUID uuid = UUID.fromString(uuidMatcher.group(1) + "-" + uuidMatcher.group(2) + "-" + uuidMatcher.group(3) + "-" + uuidMatcher.group(4) + "-" + uuidMatcher.group(5));
+            Optional<String> name = getOptionalPlayerName(uuid);
+            return Optional.of(new PlayerData(uuid, name));
+        } else {
+            return getOptionalPlayerUuid(identifier)
+                    .map(uuid -> new PlayerData(uuid, Optional.of(identifier)));
         }
     }
 }

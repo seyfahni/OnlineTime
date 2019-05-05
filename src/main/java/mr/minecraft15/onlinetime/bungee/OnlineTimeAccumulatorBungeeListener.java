@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2018 Marvin Klar
+ * Copyright (c) 2019 Niklas Seyfarth
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,36 +24,49 @@
 
 package mr.minecraft15.onlinetime.bungee;
 
-import mr.minecraft15.onlinetime.common.PlayerNameStorage;
+import mr.minecraft15.onlinetime.common.AccumulatingOnlineTimeStorage;
 import mr.minecraft15.onlinetime.common.StorageException;
-import net.md_5.bungee.api.connection.ProxiedPlayer;
+import net.md_5.bungee.api.event.PlayerDisconnectEvent;
 import net.md_5.bungee.api.event.PostLoginEvent;
 import net.md_5.bungee.api.plugin.Listener;
+import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.event.EventHandler;
 
 import java.util.UUID;
 import java.util.logging.Level;
 
-public class PlayerNameListener implements Listener {
+public class OnlineTimeAccumulatorBungeeListener implements Listener {
 
-    private final Main plugin;
-    private final PlayerNameStorage nameStorage;
+    private final Plugin plugin;
+    private final AccumulatingOnlineTimeStorage timeStorage;
 
-    public PlayerNameListener(Main plugin, PlayerNameStorage nameStorage) {
+    public OnlineTimeAccumulatorBungeeListener(Plugin plugin, AccumulatingOnlineTimeStorage timeStorage) {
         this.plugin = plugin;
-        this.nameStorage = nameStorage;
+        this.timeStorage = timeStorage;
     }
 
     @EventHandler
-    public void onPlayerLogin(PostLoginEvent event) {
-        ProxiedPlayer player = event.getPlayer();
-        final UUID uuid = player.getUniqueId();
-        final String name = player.getName();
+    public void onPlayerPostLogin(PostLoginEvent event) {
+        final UUID uuid = event.getPlayer().getUniqueId();
+        final long now = System.currentTimeMillis();
         plugin.getProxy().getScheduler().runAsync(plugin, () -> {
             try {
-                nameStorage.setEntry(uuid, name);
+                timeStorage.registerOnlineTimeStart(uuid, now);
             } catch (StorageException ex) {
-                plugin.getLogger().log(Level.WARNING, "could not save player name and uuid " + name, ex);
+                plugin.getLogger().log(Level.WARNING, "could not start accumulating online time for player " + uuid, ex);
+            }
+        });
+    }
+
+    @EventHandler
+    public void onPlayerDisconnect(PlayerDisconnectEvent event) {
+        final UUID uuid = event.getPlayer().getUniqueId();
+        final long now = System.currentTimeMillis();
+        plugin.getProxy().getScheduler().runAsync(plugin, () -> {
+            try {
+                timeStorage.saveOnlineTimeAfterDisconnect(uuid, now);
+            } catch (StorageException ex) {
+                plugin.getLogger().log(Level.WARNING, "error while stopping accumulation of online time for player " + uuid, ex);
             }
         });
     }

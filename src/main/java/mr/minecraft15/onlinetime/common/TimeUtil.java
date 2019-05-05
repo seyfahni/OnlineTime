@@ -26,7 +26,7 @@ package mr.minecraft15.onlinetime.common;
 
 public final class TimeUtil {
 
-    public static String formatTime(long seconds, Lang lang) {
+    public static String formatTime(long seconds, Localization localization) {
         long sec = seconds;
 
         long min = sec / 60;
@@ -47,13 +47,13 @@ public final class TimeUtil {
         long w = d / 7;
         d %= 7;
 
-        String secStr =            sec + " " + (sec == 1 ? lang.getMessage("unit.second.singular") : lang.getMessage("unit.second.plural"))       ;
-        String minStr = min != 0 ? min + " " + (min == 1 ? lang.getMessage("unit.minute.singular") : lang.getMessage("unit.minute.plural")) : null;
-        String hStr   = h   != 0 ? h   + " " + (h   == 1 ? lang.getMessage("unit.hour.singular")   : lang.getMessage("unit.hour.plural"))   : null;
-        String dStr   = d   != 0 ? d   + " " + (d   == 1 ? lang.getMessage("unit.day.singular")    : lang.getMessage("unit.day.plural"))    : null;
-        String wStr   = w   != 0 ? w   + " " + (w   == 1 ? lang.getMessage("unit.week.singular")   : lang.getMessage("unit.week.plural"))   : null;
-        String mStr   = m   != 0 ? m   + " " + (m   == 1 ? lang.getMessage("unit.month.singular")  : lang.getMessage("unit.month.plural"))  : null;
-        String yStr   = y   != 0 ? y   + " " + (y   == 1 ? lang.getMessage("unit.year.singular")   : lang.getMessage("unit.year.plural"))   : null;
+        String secStr =            sec + " " + (sec == 1 ? localization.getRawMessage("unit.second.singular") : localization.getRawMessage("unit.second.plural"))       ;
+        String minStr = min != 0 ? min + " " + (min == 1 ? localization.getRawMessage("unit.minute.singular") : localization.getRawMessage("unit.minute.plural")) : null;
+        String hStr   = h   != 0 ? h   + " " + (h   == 1 ? localization.getRawMessage("unit.hour.singular")   : localization.getRawMessage("unit.hour.plural"))   : null;
+        String dStr   = d   != 0 ? d   + " " + (d   == 1 ? localization.getRawMessage("unit.day.singular")    : localization.getRawMessage("unit.day.plural"))    : null;
+        String wStr   = w   != 0 ? w   + " " + (w   == 1 ? localization.getRawMessage("unit.week.singular")   : localization.getRawMessage("unit.week.plural"))   : null;
+        String mStr   = m   != 0 ? m   + " " + (m   == 1 ? localization.getRawMessage("unit.month.singular")  : localization.getRawMessage("unit.month.plural"))  : null;
+        String yStr   = y   != 0 ? y   + " " + (y   == 1 ? localization.getRawMessage("unit.year.singular")   : localization.getRawMessage("unit.year.plural"))   : null;
 
         String r = (yStr   == null ? "" : yStr   + " ")
                  + (mStr   == null ? "" : mStr   + " ")

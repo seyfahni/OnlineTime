@@ -24,86 +24,81 @@
 
 package mr.minecraft15.onlinetime.common;
 
-import de.themoep.minedown.MineDown;
-import mr.minecraft15.onlinetime.bungee.Main;
-import net.md_5.bungee.api.CommandSender;
-import net.md_5.bungee.api.chat.BaseComponent;
-import net.md_5.bungee.api.connection.ProxiedPlayer;
-import net.md_5.bungee.api.plugin.Command;
+import mr.minecraft15.onlinetime.api.PlayerData;
+import mr.minecraft15.onlinetime.api.PluginCommand;
+import mr.minecraft15.onlinetime.api.PluginCommandSender;
+import mr.minecraft15.onlinetime.api.PluginProxy;
 
 import java.util.Objects;
-import java.util.UUID;
-import java.util.regex.Matcher;
+import java.util.Optional;
+import java.util.OptionalLong;
+import java.util.logging.Level;
 
-public class OnlineTimeCommand extends Command {
+public class OnlineTimeCommand implements PluginCommand {
 
-    private final Main plugin;
-    private final Lang lang;
-    private final BaseComponent[] serverName;
+    private final PluginProxy plugin;
+    private final Localization localization;
+    private final OnlineTimeStorage timeStorage;
 
-    public OnlineTimeCommand(Main plugin, Lang lang) {
-        super("onlinetime", null, "onlinet", "otime", "ot");
+    public OnlineTimeCommand(PluginProxy plugin, Localization localization, OnlineTimeStorage timeStorage) {
         this.plugin = plugin;
-        this.lang = lang;
-        this.serverName = plugin.getServerName();
+        this.localization = localization;
+        this.timeStorage = timeStorage;
     }
 
     @Override
-    public void execute(CommandSender sender, String[] args) {
+    public void execute(PluginCommandSender sender, String... args) {
         if (!sender.hasPermission("onlinetime.see")) {
             printUtilityMessage(sender, "message.nopermission");
             return;
         }
         if (args.length <= 1) {
-            plugin.getProxy().getScheduler().runAsync(plugin, () -> {
-                final String playerName;
-                final UUID uuid;
+            plugin.getScheduler().runAsyncOnce(() -> {
+                final PlayerData player;
+                final Optional<PlayerData> senderPlayer = sender.asPlayer();
                 if (args.length == 1) {
-                    Matcher uuidMatcher = Main.UUID_PATTERN.matcher(args[0]);
-                    if (uuidMatcher.matches()) {
-                        uuid = UUID.fromString(uuidMatcher.group(1) + "-" + uuidMatcher.group(2) + "-" + uuidMatcher.group(3) + "-" + uuidMatcher.group(4) + "-" + uuidMatcher.group(5));
-                        playerName = plugin.getPlayerName(uuid);
+                    Optional<PlayerData> optionalPlayer = plugin.findPlayer(args[0]);
+                    if (optionalPlayer.isPresent()) {
+                        player = optionalPlayer.get();
                     } else {
-                        playerName = args[0];
-                        uuid = plugin.getPlayerUuid(playerName);
+                        sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.notfound"))
+                                .replace("player", args[0]));
+                        return;
                     }
-                } else if (sender instanceof ProxiedPlayer){
-                    playerName = sender.getName();
-                    uuid = ((ProxiedPlayer) sender).getUniqueId();
                 } else {
-                    printUtilityMessage(sender, "message.command.onlinetime.usage");
+                    if (senderPlayer.isPresent()){
+                        player = senderPlayer.get();
+                    } else {
+                        printUtilityMessage(sender, "message.command.onlinetime.usage");
+                        return;
+                    }
+                }
+                boolean isTargetSender = senderPlayer.isPresent() && Objects.equals(senderPlayer.get(), player);
+                if (!isTargetSender && !sender.hasPermission("onlinetime.see.other")) {
+                    printUtilityMessage(sender, "message.nopermission");
                     return;
                 }
-                long time;
-                if (uuid != null) {
-                    time = plugin.getOnlineTime(uuid);
-                } else {
-                    time = plugin.getOnlineTime(playerName);
+                final long time;
+                try {
+                    OptionalLong optionalTime = timeStorage.getOnlineTime(player.getUuid());
+                    if (optionalTime.isPresent()) {
+                        time = optionalTime.getAsLong();
+                    } else {
+                        sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.notfound"))
+                                .replace("player", player.getRepresentation()));
+                        return;
+                    }
+                } catch (StorageException ex) {
+                    plugin.getLogger().log(Level.WARNING, "could not load online time", ex);
+                    printUtilityMessage(sender, "message.error");
+                    return;
                 }
-                String playerRepresentation = playerName != null ? playerName : uuid.toString();
-                if (time == 0) {
-                    if(sender.hasPermission("onlinetime.see.other")) {
-                        sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetime.notfound"))
-                            .replace("server", serverName)
-                            .replace("player", playerRepresentation)
-                            .toComponent()).toComponent());
-                    } else {
-                        printUtilityMessage(sender, "message.nopermission");
-                    }
+                if (isTargetSender) {
+                    sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.timeseen.self"))
+                        .replace("time", TimeUtil.formatTime(time, localization)));
                 } else {
-                    if (Objects.equals(sender.getName(), playerName)) {
-                        sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetime.timeseen.self"))
-                            .replace("server", serverName)
-                            .replace("time", TimeUtil.formatTime(time, lang))
-                            .toComponent()).toComponent());
-                    } else if(sender.hasPermission("onlinetime.see.other")) {
-                        sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetime.timeseen.other"))
-                            .replace("server", serverName)
-                            .replace("player", playerRepresentation, "time", TimeUtil.formatTime(time, lang))
-                            .toComponent()).toComponent());
-                    } else {
-                        printUtilityMessage(sender, "message.nopermission");
-                    }
+                    sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.timeseen.other"))
+                        .replace("player", player.getRepresentation(), "time", TimeUtil.formatTime(time, localization)));
                 }
             });
         } else {
@@ -111,8 +106,7 @@ public class OnlineTimeCommand extends Command {
         }
     }
 
-    private void printUtilityMessage(CommandSender sender, String messageKey) {
-        sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage(messageKey))
-                .replace("server", serverName).toComponent()).toComponent());
+    private void printUtilityMessage(PluginCommandSender sender, String messageKey) {
+        sender.sendMessage(plugin.getFormattedMessage(localization.getMessage(messageKey)));
     }
 }

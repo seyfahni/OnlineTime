@@ -84,7 +84,7 @@ public class DatabaseStorage implements PlayerNameStorage, OnlineTimeStorage {
             getByNameStmnt.setString(1, name);
             try (ResultSet result = getByNameStmnt.executeQuery()) {
                 if (result.first()) {
-                    return Optional.of(fromBytes(result.getBytes("uuid")));
+                    return Optional.of(UuidUtil.fromBytes(result.getBytes("uuid")));
                 } else {
                     return Optional.empty();
                 }
@@ -110,7 +110,7 @@ public class DatabaseStorage implements PlayerNameStorage, OnlineTimeStorage {
 
     private Optional<String> getName(Connection connection, UUID uuid) throws SQLException {
         try (PreparedStatement getByUuidStmnt = connection.prepareStatement(GET_BY_UUID_SQL)) {
-            getByUuidStmnt.setBytes(1, toBytes(uuid));
+            getByUuidStmnt.setBytes(1, UuidUtil.toBytes(uuid));
             try (ResultSet result = getByUuidStmnt.executeQuery()) {
                 if (result.first()) {
                     return Optional.of(result.getString("name"));
@@ -139,7 +139,7 @@ public class DatabaseStorage implements PlayerNameStorage, OnlineTimeStorage {
 
     private OptionalLong getOnlineTime(Connection connection, UUID uuid) throws SQLException {
         try (PreparedStatement getByUuidStmnt = connection.prepareStatement(GET_BY_UUID_SQL)) {
-            getByUuidStmnt.setBytes(1, toBytes(uuid));
+            getByUuidStmnt.setBytes(1, UuidUtil.toBytes(uuid));
             try (ResultSet result = getByUuidStmnt.executeQuery()) {
                 if (result.first()) {
                     return OptionalLong.of(result.getLong("time"));
@@ -169,7 +169,7 @@ public class DatabaseStorage implements PlayerNameStorage, OnlineTimeStorage {
     private void addOnlineTime(Connection connection, UUID uuid, long additionalOnlineTime) throws SQLException {
         try (PreparedStatement insertOrUpdateEntryStmnt = connection.prepareStatement(INSERT_OR_UPDATE_ENTRY_SQL)) {
             Optional<String> name = getName(connection, uuid);
-            insertOrUpdateEntryStmnt.setBytes(1, toBytes(uuid));
+            insertOrUpdateEntryStmnt.setBytes(1, UuidUtil.toBytes(uuid));
             if (name.isPresent()) {
                 insertOrUpdateEntryStmnt.setString(2, name.get());
                 insertOrUpdateEntryStmnt.setString(4, name.get());
@@ -206,7 +206,7 @@ public class DatabaseStorage implements PlayerNameStorage, OnlineTimeStorage {
                 UUID uuid = entry.getKey();
                 Optional<String> name = getName(connection, uuid);
                 long additionalOnlineTime = entry.getValue();
-                insertOrUpdateEntryStmnt.setBytes(1, toBytes(uuid));
+                insertOrUpdateEntryStmnt.setBytes(1, UuidUtil.toBytes(uuid));
                 if (name.isPresent()) {
                     insertOrUpdateEntryStmnt.setString(2, name.get());
                     insertOrUpdateEntryStmnt.setString(4, name.get());
@@ -244,12 +244,12 @@ public class DatabaseStorage implements PlayerNameStorage, OnlineTimeStorage {
         Optional<UUID> oldNameHolder = getUuid(connection, name);
         if (oldNameHolder.filter(oldUuid -> !oldUuid.equals(uuid)).isPresent()) { // name not unique ? update on duplicate uuid
             try (PreparedStatement unsetTakenNameStmnt = connection.prepareStatement(UNSET_TAKEN_NAME_SQL)) {
-                unsetTakenNameStmnt.setBytes(1, toBytes(oldNameHolder.get()));
+                unsetTakenNameStmnt.setBytes(1, UuidUtil.toBytes(oldNameHolder.get()));
                 unsetTakenNameStmnt.executeUpdate();
             }
         }
         try (PreparedStatement insertOrUpdateEntryStmnt = connection.prepareStatement(INSERT_OR_UPDATE_ENTRY_SQL)) {
-            insertOrUpdateEntryStmnt.setBytes(1, toBytes(uuid));
+            insertOrUpdateEntryStmnt.setBytes(1, UuidUtil.toBytes(uuid));
             insertOrUpdateEntryStmnt.setString(2, name);
             insertOrUpdateEntryStmnt.setString(4, name);
             insertOrUpdateEntryStmnt.setLong(3, 0);
@@ -283,10 +283,10 @@ public class DatabaseStorage implements PlayerNameStorage, OnlineTimeStorage {
                 String name = entry.getValue();
                 Optional<UUID> oldNameHolder = getUuid(connection, name);
                 if (oldNameHolder.filter(oldUuid -> !oldUuid.equals(uuid)).isPresent()) { // name not unique ? update on duplicate uuid
-                    unsetTakenNameStmnt.setBytes(1, toBytes(oldNameHolder.get()));
+                    unsetTakenNameStmnt.setBytes(1, UuidUtil.toBytes(oldNameHolder.get()));
                     unsetTakenNameStmnt.addBatch();
                 }
-                insertOrUpdateEntryStmnt.setBytes(1, toBytes(uuid));
+                insertOrUpdateEntryStmnt.setBytes(1, UuidUtil.toBytes(uuid));
                 insertOrUpdateEntryStmnt.setString(2, name);
                 insertOrUpdateEntryStmnt.setString(4, name);
                 insertOrUpdateEntryStmnt.setLong(3, 0);
@@ -296,35 +296,6 @@ public class DatabaseStorage implements PlayerNameStorage, OnlineTimeStorage {
             unsetTakenNameStmnt.executeBatch();
             insertOrUpdateEntryStmnt.executeBatch();
         }
-    }
-
-    private static byte[] toBytes(UUID id) {
-        byte[] result = new byte[16];
-        long lsb = id.getLeastSignificantBits();
-        for (int i = 15; i >= 8; i--) {
-            result[i] = (byte) (lsb & 0xffL);
-            lsb >>= 8;
-        }
-        long msb = id.getMostSignificantBits();
-        for (int i = 7; i >= 0; i--) {
-            result[i] = (byte) (msb & 0xffL);
-            msb >>= 8;
-        }
-        return result;
-    }
-
-    private static UUID fromBytes(byte[] bytes) {
-        long msb = 0;
-        for (int i = 0; i < 8; i++) {
-            msb <<= 8L;
-            msb |= Byte.toUnsignedLong(bytes[i]);
-        }
-        long lsb = 0;
-        for (int i = 8; i < 16; i++) {
-            lsb <<= 8L;
-            lsb |= Byte.toUnsignedLong(bytes[i]);;
-        }
-        return new UUID(msb, lsb);
     }
 
     private void checkClosed() throws StorageException {

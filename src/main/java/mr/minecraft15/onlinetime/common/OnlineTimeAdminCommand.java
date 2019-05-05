@@ -25,33 +25,34 @@
 package mr.minecraft15.onlinetime.common;
 
 import de.themoep.minedown.MineDown;
-import mr.minecraft15.onlinetime.bungee.Main;
-import net.md_5.bungee.api.CommandSender;
-import net.md_5.bungee.api.chat.BaseComponent;
-import net.md_5.bungee.api.plugin.Command;
+import mr.minecraft15.onlinetime.api.PlayerData;
+import mr.minecraft15.onlinetime.api.PluginCommand;
+import mr.minecraft15.onlinetime.api.PluginCommandSender;
+import mr.minecraft15.onlinetime.api.PluginProxy;
 
 import java.util.Locale;
+import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 
-public class OnlineTimeAdminCommand extends Command {
+public class OnlineTimeAdminCommand implements PluginCommand {
 
-    private final Main plugin;
-    private final Lang lang;
+    private final PluginProxy plugin;
+    private final Localization localization;
     private final TimeParser parser;
-    private final BaseComponent[] serverName;
+    private final OnlineTimeStorage timeStorage;
 
-    public OnlineTimeAdminCommand(Main plugin, Lang lang, TimeParser parser) {
-        super("onlinetimeadmin", null, "ota", "otadmin", "onlinetimea");
+    public OnlineTimeAdminCommand(PluginProxy plugin, Localization localization, TimeParser parser, OnlineTimeStorage timeStorage) {
         this.plugin = plugin;
-        this.lang = lang;
+        this.localization = localization;
         this.parser = parser;
-        this.serverName = plugin.getServerName();
+        this.timeStorage = timeStorage;
     }
 
     @Override
-    public void execute(CommandSender sender, String[] args) {
+    public void execute(PluginCommandSender sender, String... args) {
         if (!sender.hasPermission("onlinetime.admin")) {
             printUtilityMessage(sender, "message.nopermission");
             return;
@@ -60,7 +61,7 @@ public class OnlineTimeAdminCommand extends Command {
             printUtilityMessage(sender, "message.command.onlinetimeadmin.usage");
             return;
         }
-        plugin.getProxy().getScheduler().runAsync(plugin, () -> {
+        plugin.getScheduler().runAsyncOnce(() -> {
             String[] subCommandArgs = new String[args.length - 1];
             System.arraycopy(args, 1, subCommandArgs, 0, subCommandArgs.length);
 
@@ -85,16 +86,18 @@ public class OnlineTimeAdminCommand extends Command {
         });
     }
 
-    private void set(CommandSender sender, String... args) {
+    private void set(PluginCommandSender sender, String... args) {
         if (args.length < 2) {
             printUtilityMessage(sender, "message.command.onlinetimeadmin.set.usage");
             return;
         }
-        PlayerData player = getPlayerData(args[0]);
-        if (player.uuid == null) {
-            printMissingUuidMessage(sender, player.name);
+        Optional<PlayerData> optionalPlayer = plugin.findPlayer(args[0]);
+        if (!optionalPlayer.isPresent()) {
+            printMissingUuidMessage(sender, args[0]);
             return;
         }
+        PlayerData player = optionalPlayer.get();
+
         String[] timeArgs = new String[args.length - 1];
         System.arraycopy(args, 1, timeArgs, 0, timeArgs.length);
         OptionalLong optionalTime = parser.parseToSeconds(String.join(" ", timeArgs));
@@ -104,34 +107,49 @@ public class OnlineTimeAdminCommand extends Command {
         }
         long time = optionalTime.getAsLong();
         if (time < 0) {
-            sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetimeadmin.set.negativetime"))
-                    .replace("server", serverName)
-                    .replace("player", player.representation)
-                    .replace("time", TimeUtil.formatTime(time, lang))
-                    .toComponent()).toComponent());
+            sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetimeadmin.set.negativetime"))
+                    .replace("player", player.getRepresentation())
+                    .replace("time", TimeUtil.formatTime(time, localization)));
             return;
         }
-        long currentTime = plugin.getOnlineTime(player.uuid);
-        if (currentTime != time) {
-            plugin.modifyOnlineTime(player.uuid, time - currentTime);
+
+        long currentTime;
+        try {
+            OptionalLong optionalCurrentTime = timeStorage.getOnlineTime(player.getUuid());
+            if (optionalCurrentTime.isPresent()) {
+                currentTime = optionalCurrentTime.getAsLong();
+            } else {
+                sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.notfound"))
+                        .replace("player", player.getRepresentation()));
+                return;
+            }
+        } catch (StorageException ex) {
+            plugin.getLogger().log(Level.WARNING, "could not load online time", ex);
+            printUtilityMessage(sender, "message.error");
+            return;
         }
-        sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetimeadmin.set.success"))
-                .replace("server", serverName)
-                .replace("player", player.representation)
-                .replace("time", TimeUtil.formatTime(time, lang))
-                .toComponent()).toComponent());
+
+        if (currentTime != time) {
+            modifyOnlineTime(player.getUuid(), time - currentTime);
+        }
+        sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetimeadmin.set.success"))
+                .replace("player", player.getRepresentation())
+                .replace("time", TimeUtil.formatTime(time, localization)));
     }
 
-    private void modify(CommandSender sender, String... args) {
+    private void modify(PluginCommandSender sender, String... args) {
         if (args.length < 2) {
             printUtilityMessage(sender, "message.command.onlinetimeadmin.modify.usage");
             return;
         }
-        PlayerData player = getPlayerData(args[0]);
-        if (player.uuid == null) {
-            printMissingUuidMessage(sender, player.name);
+
+        Optional<PlayerData> optionalPlayer = plugin.findPlayer(args[0]);
+        if (!optionalPlayer.isPresent()) {
+            printMissingUuidMessage(sender, args[0]);
             return;
         }
+        PlayerData player = optionalPlayer.get();
+
         String[] timeArgs = new String[args.length - 1];
         System.arraycopy(args, 1, timeArgs, 0, timeArgs.length);
         OptionalLong optionalTime = parser.parseToSeconds(String.join(" ", timeArgs));
@@ -140,81 +158,89 @@ public class OnlineTimeAdminCommand extends Command {
             return;
         }
         long time = optionalTime.getAsLong();
-        long currentTime = plugin.getOnlineTime(player.uuid);
+        long currentTime;
+        try {
+            OptionalLong optionalCurrentTime = timeStorage.getOnlineTime(player.getUuid());
+            if (optionalCurrentTime.isPresent()) {
+                currentTime = optionalCurrentTime.getAsLong();
+            } else {
+                sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.notfound"))
+                        .replace("player", player.getRepresentation()));
+                return;
+            }
+        } catch (StorageException ex) {
+            plugin.getLogger().log(Level.WARNING, "could not load online time", ex);
+            printUtilityMessage(sender, "message.error");
+            return;
+        }
         if (currentTime + time < 0) {
-            sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetimeadmin.modify.negativetimesum"))
-                    .replace("server", serverName)
-                    .replace("player", player.representation)
-                    .replace("time", TimeUtil.formatTime(time, lang))
-                    .toComponent()).toComponent());
+            sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetimeadmin.modify.negativetimesum"))
+                    .replace("player", player.getRepresentation())
+                    .replace("time", TimeUtil.formatTime(time, localization)));
             return;
         }
         if (time != 0) {
-            plugin.modifyOnlineTime(player.uuid, time);
+            modifyOnlineTime(player.getUuid(), time);
         }
-        sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetimeadmin.modify.success"))
-                .replace("server", serverName)
-                .replace("player", player.representation)
-                .replace("time", TimeUtil.formatTime(time, lang))
-                .toComponent()).toComponent());
+        sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetimeadmin.modify.success"))
+                .replace("player", player.getRepresentation())
+                .replace("time", TimeUtil.formatTime(time, localization)));
     }
 
-    private void reset(CommandSender sender, String... args) {
+    private void reset(PluginCommandSender sender, String... args) {
         if (args.length != 1) {
             printUtilityMessage(sender, "message.command.onlinetimeadmin.reset.usage");
             return;
         }
-        PlayerData player = getPlayerData(args[0]);
-        if (player.uuid == null) {
-            printMissingUuidMessage(sender, player.name);
+        Optional<PlayerData> optionalPlayer = plugin.findPlayer(args[0]);
+        if (!optionalPlayer.isPresent()) {
+            printMissingUuidMessage(sender, args[0]);
             return;
         }
-        long currentTime = plugin.getOnlineTime(player.uuid);
+        PlayerData player = optionalPlayer.get();
+        long currentTime;
+        try {
+            OptionalLong optionalCurrentTime = timeStorage.getOnlineTime(player.getUuid());
+            if (optionalCurrentTime.isPresent()) {
+                currentTime = optionalCurrentTime.getAsLong();
+            } else {
+                sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.notfound"))
+                        .replace("player", player.getRepresentation()));
+                return;
+            }
+        } catch (StorageException ex) {
+            plugin.getLogger().log(Level.WARNING, "could not load online time", ex);
+            printUtilityMessage(sender, "message.error");
+            return;
+        }
         if (currentTime != 0) {
-            plugin.modifyOnlineTime(player.uuid, -currentTime);
+            modifyOnlineTime(player.getUuid(), -currentTime);
         }
-        sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetimeadmin.reset.success"))
-                .replace("server", serverName)
-                .replace("player", player.representation)
-                .toComponent()).toComponent());
+        sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetimeadmin.reset.success"))
+                .replace("player", player.getRepresentation()));
     }
 
-    private PlayerData getPlayerData(String identifier) {
-        Matcher uuidMatcher = Main.UUID_PATTERN.matcher(identifier);
-        PlayerData player = new PlayerData();
-        if (uuidMatcher.matches()) {
-            player.uuid = UUID.fromString(uuidMatcher.group(1) + "-" + uuidMatcher.group(2) + "-" + uuidMatcher.group(3) + "-" + uuidMatcher.group(4) + "-" + uuidMatcher.group(5));
-            player.name = plugin.getPlayerName(player.uuid);
-        } else {
-            player.name = identifier;
-            player.uuid = plugin.getPlayerUuid(player.name);
+    public boolean modifyOnlineTime(UUID uuid, final long modifyBy) {
+        try {
+            timeStorage.addOnlineTime(uuid, modifyBy);
+            return true;
+        } catch (StorageException ex) {
+            plugin.getLogger().log(Level.SEVERE, "could not modify online time of " + uuid.toString(), ex);
+            return false;
         }
-        player.representation = player.name != null ? player.name : player.uuid.toString();
-        return player;
     }
 
-    private void printMissingUuidMessage(CommandSender sender, String playerName) {
-        sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetimeadmin.missinguuid"))
-                .replace("server", serverName)
-                .replace("player", playerName)
-                .toComponent()).toComponent());
+    private void printMissingUuidMessage(PluginCommandSender sender, String playerName) {
+        sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetimeadmin.missinguuid"))
+                .replace("player", playerName));
     }
 
-    private void printNotTimeMessage(CommandSender sender, String... notTime) {
-        sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage("message.command.onlinetimeadmin.nottime"))
-                .replace("server", serverName)
-                .replace("argument", String.join(" ", notTime))
-                .toComponent()).toComponent());
+    private void printNotTimeMessage(PluginCommandSender sender, String... notTime) {
+        sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetimeadmin.nottime"))
+                .replace("argument", String.join(" ", notTime)));
     }
 
-    private void printUtilityMessage(CommandSender sender, String messageKey) {
-        sender.sendMessage(plugin.getFormattedMessage(new MineDown(lang.getMessage(messageKey))
-                .replace("server", serverName).toComponent()).toComponent());
-    }
-
-    private class PlayerData {
-        public UUID uuid;
-        public String name;
-        public String representation;
+    private void printUtilityMessage(PluginCommandSender sender, String messageKey) {
+        sender.sendMessage(plugin.getFormattedMessage(localization.getMessage(messageKey)));
     }
 }
