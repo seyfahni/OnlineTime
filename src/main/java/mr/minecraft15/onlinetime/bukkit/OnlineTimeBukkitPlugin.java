@@ -45,7 +45,7 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 
-public class Main extends JavaPlugin implements PluginProxy {
+public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
 
     private static final int CONFIG_VERSION = 1;
 

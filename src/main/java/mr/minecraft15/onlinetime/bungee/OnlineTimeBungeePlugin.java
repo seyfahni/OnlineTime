@@ -46,7 +46,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 
-public class Main extends Plugin implements PluginProxy {
+public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
 
     private static final int CONFIG_VERSION = 1;
 

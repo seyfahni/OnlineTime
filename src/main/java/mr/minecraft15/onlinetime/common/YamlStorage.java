@@ -39,7 +39,7 @@ import java.util.Objects;
 public abstract class YamlStorage {
 
     /**
-     * Reference to the Main-singleon instance.
+     * Reference to the OnlineTimeBungeePlugin-singleon instance.
      */
     protected final Plugin plugin;
 

@@ -1,4 +1,4 @@
-main: '${basePackage}.bukkit.Main'
+main: '${basePackage}.bukkit.OnlineTimeBukkitPlugin'
 name: '${name}'
 version: '${version}'
 api-version: '1.13'
