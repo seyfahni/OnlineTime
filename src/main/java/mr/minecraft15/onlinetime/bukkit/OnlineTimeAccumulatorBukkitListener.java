@@ -24,23 +24,23 @@
 
 package mr.minecraft15.onlinetime.bukkit;
 
+import mr.minecraft15.onlinetime.api.PluginProxy;
 import mr.minecraft15.onlinetime.common.AccumulatingOnlineTimeStorage;
 import mr.minecraft15.onlinetime.common.StorageException;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.plugin.Plugin;
 
 import java.util.UUID;
 import java.util.logging.Level;
 
 public class OnlineTimeAccumulatorBukkitListener implements Listener {
 
-    private final Plugin plugin;
+    private final PluginProxy plugin;
     private final AccumulatingOnlineTimeStorage timeStorage;
 
-    public OnlineTimeAccumulatorBukkitListener(Plugin plugin, AccumulatingOnlineTimeStorage timeStorage) {
+    public OnlineTimeAccumulatorBukkitListener(PluginProxy plugin, AccumulatingOnlineTimeStorage timeStorage) {
         this.plugin = plugin;
         this.timeStorage = timeStorage;
     }
@@ -49,7 +49,7 @@ public class OnlineTimeAccumulatorBukkitListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         final UUID uuid = event.getPlayer().getUniqueId();
         final long now = System.currentTimeMillis();
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+        plugin.getScheduler().runAsyncOnce(() -> {
             try {
                 timeStorage.registerOnlineTimeStart(uuid, now);
             } catch (StorageException ex) {
@@ -62,7 +62,7 @@ public class OnlineTimeAccumulatorBukkitListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         final UUID uuid = event.getPlayer().getUniqueId();
         final long now = System.currentTimeMillis();
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+        plugin.getScheduler().runAsyncOnce(() -> {
             try {
                 timeStorage.saveOnlineTimeAfterDisconnect(uuid, now);
             } catch (StorageException ex) {

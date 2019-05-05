@@ -24,6 +24,7 @@
 
 package mr.minecraft15.onlinetime.bukkit;
 
+import mr.minecraft15.onlinetime.api.PluginProxy;
 import mr.minecraft15.onlinetime.common.PlayerNameStorage;
 import mr.minecraft15.onlinetime.common.StorageException;
 import org.bukkit.entity.Player;
@@ -35,10 +36,10 @@ import java.util.logging.Level;
 
 public class PlayerNameBukkitListener {
 
-    private final Main plugin;
+    private final PluginProxy plugin;
     private final PlayerNameStorage nameStorage;
 
-    public PlayerNameBukkitListener(Main plugin, PlayerNameStorage nameStorage) {
+    public PlayerNameBukkitListener(PluginProxy plugin, PlayerNameStorage nameStorage) {
         this.plugin = plugin;
         this.nameStorage = nameStorage;
     }
@@ -48,7 +49,7 @@ public class PlayerNameBukkitListener {
         Player player = event.getPlayer();
         final UUID uuid = player.getUniqueId();
         final String name = player.getName();
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+        plugin.getScheduler().runAsyncOnce(() -> {
             try {
                 nameStorage.setEntry(uuid, name);
             } catch (StorageException ex) {

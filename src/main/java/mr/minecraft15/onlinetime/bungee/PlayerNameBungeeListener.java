@@ -24,6 +24,7 @@
 
 package mr.minecraft15.onlinetime.bungee;
 
+import mr.minecraft15.onlinetime.api.PluginProxy;
 import mr.minecraft15.onlinetime.common.PlayerNameStorage;
 import mr.minecraft15.onlinetime.common.StorageException;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
@@ -36,10 +37,10 @@ import java.util.logging.Level;
 
 public class PlayerNameBungeeListener implements Listener {
 
-    private final Main plugin;
+    private final PluginProxy plugin;
     private final PlayerNameStorage nameStorage;
 
-    public PlayerNameBungeeListener(Main plugin, PlayerNameStorage nameStorage) {
+    public PlayerNameBungeeListener(PluginProxy plugin, PlayerNameStorage nameStorage) {
         this.plugin = plugin;
         this.nameStorage = nameStorage;
     }
@@ -49,7 +50,7 @@ public class PlayerNameBungeeListener implements Listener {
         ProxiedPlayer player = event.getPlayer();
         final UUID uuid = player.getUniqueId();
         final String name = player.getName();
-        plugin.getProxy().getScheduler().runAsync(plugin, () -> {
+        plugin.getScheduler().runAsyncOnce(() -> {
             try {
                 nameStorage.setEntry(uuid, name);
             } catch (StorageException ex) {

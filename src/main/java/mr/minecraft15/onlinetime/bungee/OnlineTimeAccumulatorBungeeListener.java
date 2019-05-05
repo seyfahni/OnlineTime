@@ -24,12 +24,12 @@
 
 package mr.minecraft15.onlinetime.bungee;
 
+import mr.minecraft15.onlinetime.api.PluginProxy;
 import mr.minecraft15.onlinetime.common.AccumulatingOnlineTimeStorage;
 import mr.minecraft15.onlinetime.common.StorageException;
 import net.md_5.bungee.api.event.PlayerDisconnectEvent;
 import net.md_5.bungee.api.event.PostLoginEvent;
 import net.md_5.bungee.api.plugin.Listener;
-import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.event.EventHandler;
 
 import java.util.UUID;
@@ -37,10 +37,10 @@ import java.util.logging.Level;
 
 public class OnlineTimeAccumulatorBungeeListener implements Listener {
 
-    private final Plugin plugin;
+    private final PluginProxy plugin;
     private final AccumulatingOnlineTimeStorage timeStorage;
 
-    public OnlineTimeAccumulatorBungeeListener(Plugin plugin, AccumulatingOnlineTimeStorage timeStorage) {
+    public OnlineTimeAccumulatorBungeeListener(PluginProxy plugin, AccumulatingOnlineTimeStorage timeStorage) {
         this.plugin = plugin;
         this.timeStorage = timeStorage;
     }
@@ -49,7 +49,7 @@ public class OnlineTimeAccumulatorBungeeListener implements Listener {
     public void onPlayerPostLogin(PostLoginEvent event) {
         final UUID uuid = event.getPlayer().getUniqueId();
         final long now = System.currentTimeMillis();
-        plugin.getProxy().getScheduler().runAsync(plugin, () -> {
+        plugin.getScheduler().runAsyncOnce(() -> {
             try {
                 timeStorage.registerOnlineTimeStart(uuid, now);
             } catch (StorageException ex) {
@@ -62,7 +62,7 @@ public class OnlineTimeAccumulatorBungeeListener implements Listener {
     public void onPlayerDisconnect(PlayerDisconnectEvent event) {
         final UUID uuid = event.getPlayer().getUniqueId();
         final long now = System.currentTimeMillis();
-        plugin.getProxy().getScheduler().runAsync(plugin, () -> {
+        plugin.getScheduler().runAsyncOnce(() -> {
             try {
                 timeStorage.saveOnlineTimeAfterDisconnect(uuid, now);
             } catch (StorageException ex) {
