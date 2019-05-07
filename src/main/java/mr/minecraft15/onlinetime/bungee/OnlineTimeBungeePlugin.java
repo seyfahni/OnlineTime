@@ -44,7 +44,6 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
 public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
@@ -93,10 +92,10 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
     public void onDisable() {
         getProxy().getPluginManager().unregisterCommands(this);
         getProxy().getPluginManager().unregisterListeners(this);
-        flushCacheTask.cancel();
-        flushOnlineTimeCache();
         if (onlineTimeStorage != null) {
             try {
+                flushCacheTask.cancel();
+                flushOnlineTimeCache();
                 onlineTimeStorage.close();
             } catch (StorageException ex) {
                 getLogger().log(Level.SEVERE, "error while closing online time storage", ex);

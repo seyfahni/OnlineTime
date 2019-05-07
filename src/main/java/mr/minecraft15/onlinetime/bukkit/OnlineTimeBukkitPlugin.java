@@ -62,7 +62,7 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
     private AccumulatingOnlineTimeStorage onlineTimeStorage;
     private PlayerNameStorage playerNameStorage;
 
-    BukkitTask flushCacheTask;
+    private BukkitTask flushCacheTask;
 
     @Override
     public void onEnable() {
@@ -249,7 +249,22 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
 
     @Override
     public void onDisable() {
-
+        if (onlineTimeStorage != null) {
+            try {
+                flushCacheTask.cancel();
+                flushOnlineTimeCache();
+                onlineTimeStorage.close();
+            } catch (StorageException ex) {
+                getLogger().log(Level.SEVERE, "error while closing online time storage", ex);
+            }
+        }
+        if (playerNameStorage != null) {
+            try {
+                playerNameStorage.close();
+            } catch (StorageException ex) {
+                getLogger().log(Level.SEVERE, "error while closing player name storage", ex);
+            }
+        }
     }
 
     @Override
