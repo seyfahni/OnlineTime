@@ -34,6 +34,7 @@
         <targetPath>.</targetPath>
         <filtering>false</filtering>
         <excludes>
+          <exclude>plugin.yml</exclude>
           <exclude>bungee.yml</exclude>
           <exclude>database.properties</exclude>
         </excludes>
@@ -43,6 +44,7 @@
         <targetPath>.</targetPath>
         <filtering>true</filtering>
         <includes>
+          <include>plugin.yml</include>
           <include>bungee.yml</include>
           <include>database.properties</include>
         </includes>
