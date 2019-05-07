@@ -39,8 +39,12 @@ public class FilePlayerNameStorage implements PlayerNameStorage {
     @Override
     public Optional<UUID> getUuid(String playerName) throws StorageException {
         Objects.requireNonNull(playerName);
-        String uuid = storageProvider.read(playerName).toString();
-        return UuidUtil.fromString(uuid);
+        Object uuid = storageProvider.read(playerName);
+        if (null == uuid) {
+            return Optional.empty();
+        } else {
+            return UuidUtil.fromString(uuid.toString());
+        }
     }
 
     @Override
