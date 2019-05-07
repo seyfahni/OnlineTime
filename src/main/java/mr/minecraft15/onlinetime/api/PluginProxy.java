@@ -24,8 +24,6 @@
 
 package mr.minecraft15.onlinetime.api;
 
-import de.themoep.minedown.MineDown;
-
 import java.util.Optional;
 import java.util.logging.Logger;
 
@@ -58,5 +56,5 @@ public interface PluginProxy {
      */
     Optional<PlayerData> findPlayer(String identifier);
 
-    MineDown getFormattedMessage(MineDown raw);
+    String getFormattedMessage(String raw);
 }

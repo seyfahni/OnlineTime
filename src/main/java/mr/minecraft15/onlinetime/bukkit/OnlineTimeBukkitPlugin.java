@@ -24,12 +24,10 @@
 
 package mr.minecraft15.onlinetime.bukkit;
 
-import de.themoep.minedown.MineDown;
 import mr.minecraft15.onlinetime.api.PlayerData;
 import mr.minecraft15.onlinetime.api.PluginProxy;
 import mr.minecraft15.onlinetime.api.PluginScheduler;
 import mr.minecraft15.onlinetime.common.*;
-import net.md_5.bungee.api.chat.BaseComponent;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -50,11 +48,11 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
 
     private PluginScheduler scheduler;
 
-    private MineDown messageFormat;
+    private String messageFormat;
     private Localization localization;
     private TimeParser parser;
 
-    private BaseComponent[] serverName;
+    private String serverName;
 
     private long saveInterval;
     private String storageMethod;
@@ -100,8 +98,8 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
             }
         }
 
-        this.messageFormat = new MineDown(config.getString("messageformat"));
-        this.serverName = new MineDown(config.getString("servername", "this server")).toComponent();
+        this.messageFormat = config.getString("messageformat");
+        this.serverName = config.getString("servername", "this server");
         this.saveInterval = config.getLong("saveinterval", 30);
         this.storageMethod = config.getString("storage", "yaml");
 
@@ -310,10 +308,9 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
     }
 
     @Override
-    public MineDown getFormattedMessage(MineDown rawMessage) {
-        return messageFormat.copy()
-                .replace("message", rawMessage
-                    .replace("server", serverName)
-                    .toComponent());
+    public String getFormattedMessage(String rawMessage) {
+        return messageFormat
+                .replace("%message%", rawMessage)
+                .replace("%server%", serverName);
     }
 }

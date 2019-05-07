@@ -47,13 +47,13 @@ public final class TimeUtil {
         long w = d / 7;
         d %= 7;
 
-        String secStr =            sec + " " + (sec == 1 ? localization.getRawMessage("unit.second.singular") : localization.getRawMessage("unit.second.plural"))       ;
-        String minStr = min != 0 ? min + " " + (min == 1 ? localization.getRawMessage("unit.minute.singular") : localization.getRawMessage("unit.minute.plural")) : null;
-        String hStr   = h   != 0 ? h   + " " + (h   == 1 ? localization.getRawMessage("unit.hour.singular")   : localization.getRawMessage("unit.hour.plural"))   : null;
-        String dStr   = d   != 0 ? d   + " " + (d   == 1 ? localization.getRawMessage("unit.day.singular")    : localization.getRawMessage("unit.day.plural"))    : null;
-        String wStr   = w   != 0 ? w   + " " + (w   == 1 ? localization.getRawMessage("unit.week.singular")   : localization.getRawMessage("unit.week.plural"))   : null;
-        String mStr   = m   != 0 ? m   + " " + (m   == 1 ? localization.getRawMessage("unit.month.singular")  : localization.getRawMessage("unit.month.plural"))  : null;
-        String yStr   = y   != 0 ? y   + " " + (y   == 1 ? localization.getRawMessage("unit.year.singular")   : localization.getRawMessage("unit.year.plural"))   : null;
+        String secStr =            sec + " " + (sec == 1 ? localization.getMessage("unit.second.singular") : localization.getMessage("unit.second.plural"))       ;
+        String minStr = min != 0 ? min + " " + (min == 1 ? localization.getMessage("unit.minute.singular") : localization.getMessage("unit.minute.plural")) : null;
+        String hStr   = h   != 0 ? h   + " " + (h   == 1 ? localization.getMessage("unit.hour.singular")   : localization.getMessage("unit.hour.plural"))   : null;
+        String dStr   = d   != 0 ? d   + " " + (d   == 1 ? localization.getMessage("unit.day.singular")    : localization.getMessage("unit.day.plural"))    : null;
+        String wStr   = w   != 0 ? w   + " " + (w   == 1 ? localization.getMessage("unit.week.singular")   : localization.getMessage("unit.week.plural"))   : null;
+        String mStr   = m   != 0 ? m   + " " + (m   == 1 ? localization.getMessage("unit.month.singular")  : localization.getMessage("unit.month.plural"))  : null;
+        String yStr   = y   != 0 ? y   + " " + (y   == 1 ? localization.getMessage("unit.year.singular")   : localization.getMessage("unit.year.plural"))   : null;
 
         String r = (yStr   == null ? "" : yStr   + " ")
                  + (mStr   == null ? "" : mStr   + " ")

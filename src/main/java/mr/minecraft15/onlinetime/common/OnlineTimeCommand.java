@@ -62,7 +62,7 @@ public class OnlineTimeCommand implements PluginCommand {
                         player = optionalPlayer.get();
                     } else {
                         sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.notfound")
-                                .replace("player", args[0])));
+                                .replace("%player%", args[0])));
                         return;
                     }
                 } else {
@@ -85,7 +85,7 @@ public class OnlineTimeCommand implements PluginCommand {
                         time = optionalTime.getAsLong();
                     } else {
                         sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.notfound")
-                                .replace("player", player.getRepresentation())));
+                                .replace("%player%", player.getRepresentation())));
                         return;
                     }
                 } catch (StorageException ex) {
@@ -95,10 +95,11 @@ public class OnlineTimeCommand implements PluginCommand {
                 }
                 if (isTargetSender) {
                     sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.timeseen.self")
-                        .replace("time", TimeUtil.formatTime(time, localization))));
+                        .replace("%time%", TimeUtil.formatTime(time, localization))));
                 } else {
                     sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.timeseen.other")
-                        .replace("player", player.getRepresentation(), "time", TimeUtil.formatTime(time, localization))));
+                        .replace("%player%", player.getRepresentation())
+                        .replace("%time%", TimeUtil.formatTime(time, localization))));
                 }
             });
         } else {

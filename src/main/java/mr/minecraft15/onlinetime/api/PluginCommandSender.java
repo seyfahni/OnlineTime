@@ -24,15 +24,13 @@
 
 package mr.minecraft15.onlinetime.api;
 
-import de.themoep.minedown.MineDown;
-
 import java.util.Optional;
 
 public interface PluginCommandSender {
 
     boolean hasPermission(String permissionNode);
 
-    void sendMessage(MineDown message);
+    void sendMessage(String message);
 
     /**
      * Check whether this sender is a player or not. Equal to {@code asPlayer.isPresent()}, but possibly faster.

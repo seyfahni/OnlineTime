@@ -24,7 +24,6 @@
 
 package mr.minecraft15.onlinetime.common;
 
-import de.themoep.minedown.MineDown;
 import mr.minecraft15.onlinetime.api.PlayerData;
 import mr.minecraft15.onlinetime.api.PluginCommand;
 import mr.minecraft15.onlinetime.api.PluginCommandSender;
@@ -35,7 +34,6 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.UUID;
 import java.util.logging.Level;
-import java.util.regex.Matcher;
 
 public class OnlineTimeAdminCommand implements PluginCommand {
 
@@ -108,8 +106,8 @@ public class OnlineTimeAdminCommand implements PluginCommand {
         long time = optionalTime.getAsLong();
         if (time < 0) {
             sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetimeadmin.set.negativetime")
-                    .replace("player", player.getRepresentation())
-                    .replace("time", TimeUtil.formatTime(time, localization))));
+                    .replace("%player%", player.getRepresentation())
+                    .replace("%time%", TimeUtil.formatTime(time, localization))));
             return;
         }
 
@@ -120,7 +118,7 @@ public class OnlineTimeAdminCommand implements PluginCommand {
                 currentTime = optionalCurrentTime.getAsLong();
             } else {
                 sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.notfound")
-                        .replace("player", player.getRepresentation())));
+                        .replace("%player%", player.getRepresentation())));
                 return;
             }
         } catch (StorageException ex) {
@@ -133,8 +131,8 @@ public class OnlineTimeAdminCommand implements PluginCommand {
             modifyOnlineTime(player.getUuid(), time - currentTime);
         }
         sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetimeadmin.set.success")
-                .replace("player", player.getRepresentation())
-                .replace("time", TimeUtil.formatTime(time, localization))));
+                .replace("%player%", player.getRepresentation())
+                .replace("%time%", TimeUtil.formatTime(time, localization))));
     }
 
     private void modify(PluginCommandSender sender, String... args) {
@@ -165,7 +163,7 @@ public class OnlineTimeAdminCommand implements PluginCommand {
                 currentTime = optionalCurrentTime.getAsLong();
             } else {
                 sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.notfound")
-                        .replace("player", player.getRepresentation())));
+                        .replace("%player%", player.getRepresentation())));
                 return;
             }
         } catch (StorageException ex) {
@@ -175,16 +173,16 @@ public class OnlineTimeAdminCommand implements PluginCommand {
         }
         if (currentTime + time < 0) {
             sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetimeadmin.modify.negativetimesum")
-                    .replace("player", player.getRepresentation())
-                    .replace("time", TimeUtil.formatTime(time, localization))));
+                    .replace("%player%", player.getRepresentation())
+                    .replace("%time%", TimeUtil.formatTime(time, localization))));
             return;
         }
         if (time != 0) {
             modifyOnlineTime(player.getUuid(), time);
         }
         sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetimeadmin.modify.success")
-                .replace("player", player.getRepresentation())
-                .replace("time", TimeUtil.formatTime(time, localization))));
+                .replace("%player%", player.getRepresentation())
+                .replace("%time%", TimeUtil.formatTime(time, localization))));
     }
 
     private void reset(PluginCommandSender sender, String... args) {
@@ -205,7 +203,7 @@ public class OnlineTimeAdminCommand implements PluginCommand {
                 currentTime = optionalCurrentTime.getAsLong();
             } else {
                 sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.notfound")
-                        .replace("player", player.getRepresentation())));
+                        .replace("%player%", player.getRepresentation())));
                 return;
             }
         } catch (StorageException ex) {
@@ -217,7 +215,7 @@ public class OnlineTimeAdminCommand implements PluginCommand {
             modifyOnlineTime(player.getUuid(), -currentTime);
         }
         sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetimeadmin.reset.success")
-                .replace("player", player.getRepresentation())));
+                .replace("%player%", player.getRepresentation())));
     }
 
     public boolean modifyOnlineTime(UUID uuid, final long modifyBy) {
@@ -232,12 +230,12 @@ public class OnlineTimeAdminCommand implements PluginCommand {
 
     private void printMissingUuidMessage(PluginCommandSender sender, String playerName) {
         sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetimeadmin.missinguuid")
-                .replace("player", playerName)));
+                .replace("%player%", playerName)));
     }
 
     private void printNotTimeMessage(PluginCommandSender sender, String... notTime) {
         sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetimeadmin.nottime")
-                .replace("argument", String.join(" ", notTime))));
+                .replace("%argument%", String.join(" ", notTime))));
     }
 
     private void printUtilityMessage(PluginCommandSender sender, String messageKey) {

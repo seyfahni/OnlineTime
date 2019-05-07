@@ -1,4 +1,0 @@
-main: '${basePackage}.bungee.OnlineTimeBungeePlugin'
-name: '${name}'
-version: '${version}'
-author: 'seyfahni and Mr_Minecraft15'

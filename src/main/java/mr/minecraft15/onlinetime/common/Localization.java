@@ -24,32 +24,18 @@
 
 package mr.minecraft15.onlinetime.common;
 
-import de.themoep.minedown.MineDown;
-
 import java.util.HashMap;
 import java.util.Map;
 
 public class Localization {
 
-    private final Map<String, String> translationsAsString;
-    private final Map<String, MineDown> translationsAsMarkDown;
-
-    private static Map<String, MineDown> convertToMineDownMap(Map<String, String> raw) {
-        Map<String, MineDown> converted = new HashMap<>();
-        raw.forEach((key, value) -> converted.put(key, new MineDown(value)));
-        return converted;
-    }
+    private final Map<String, String> translations;
 
     public Localization(Map<String, String> translations) {
-        this.translationsAsString = new HashMap<>(translations);
-        this.translationsAsMarkDown = convertToMineDownMap(translations);
+        this.translations = new HashMap<>(translations);
     }
 
-    public MineDown getMessage(String messageKey) {
-        return translationsAsMarkDown.get(messageKey).copy();
-    }
-
-    public String getRawMessage(String messageKey) {
-        return translationsAsString.get(messageKey);
+    public String getMessage(String messageKey) {
+        return translations.get(messageKey);
     }
 }

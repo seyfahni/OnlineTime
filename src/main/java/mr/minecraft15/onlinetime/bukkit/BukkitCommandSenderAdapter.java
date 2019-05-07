@@ -24,7 +24,6 @@
 
 package mr.minecraft15.onlinetime.bukkit;
 
-import de.themoep.minedown.MineDown;
 import mr.minecraft15.onlinetime.api.PlayerData;
 import mr.minecraft15.onlinetime.api.PluginCommandSender;
 import org.bukkit.command.CommandSender;
@@ -72,8 +71,8 @@ public class BukkitCommandSenderAdapter implements PluginCommandSender {
     }
 
     @Override
-    public void sendMessage(MineDown message) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> sender.spigot().sendMessage(message.toComponent()));
+    public void sendMessage(String message) {
+        plugin.getServer().getScheduler().runTask(plugin, () -> sender.sendMessage(message));
     }
 
     @Override

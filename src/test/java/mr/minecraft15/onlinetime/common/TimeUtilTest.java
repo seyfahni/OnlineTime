@@ -19,20 +19,20 @@ public class TimeUtilTest {
 
     private Localization getTestLocalization() {
         Localization localization = mock(Localization.class);
-        when(localization.getRawMessage("unit.second.singular")).thenReturn("S_ONE");
-        when(localization.getRawMessage("unit.second.plural")).thenReturn("S_MANY");
-        when(localization.getRawMessage("unit.minute.singular")).thenReturn("MIN_ONE");
-        when(localization.getRawMessage("unit.minute.plural")).thenReturn("MIN_MANY");
-        when(localization.getRawMessage("unit.hour.singular")).thenReturn("H_ONE");
-        when(localization.getRawMessage("unit.hour.plural")).thenReturn("H_MANY");
-        when(localization.getRawMessage("unit.day.singular")).thenReturn("D_ONE");
-        when(localization.getRawMessage("unit.day.plural")).thenReturn("D_MANY");
-        when(localization.getRawMessage("unit.week.singular")).thenReturn("W_ONE");
-        when(localization.getRawMessage("unit.week.plural")).thenReturn("W_MANY");
-        when(localization.getRawMessage("unit.month.singular")).thenReturn("M_ONE");
-        when(localization.getRawMessage("unit.month.plural")).thenReturn("M_MANY");
-        when(localization.getRawMessage("unit.year.singular")).thenReturn("Y_ONE");
-        when(localization.getRawMessage("unit.year.plural")).thenReturn("Y_MANY");
+        when(localization.getMessage("unit.second.singular")).thenReturn("S_ONE");
+        when(localization.getMessage("unit.second.plural")).thenReturn("S_MANY");
+        when(localization.getMessage("unit.minute.singular")).thenReturn("MIN_ONE");
+        when(localization.getMessage("unit.minute.plural")).thenReturn("MIN_MANY");
+        when(localization.getMessage("unit.hour.singular")).thenReturn("H_ONE");
+        when(localization.getMessage("unit.hour.plural")).thenReturn("H_MANY");
+        when(localization.getMessage("unit.day.singular")).thenReturn("D_ONE");
+        when(localization.getMessage("unit.day.plural")).thenReturn("D_MANY");
+        when(localization.getMessage("unit.week.singular")).thenReturn("W_ONE");
+        when(localization.getMessage("unit.week.plural")).thenReturn("W_MANY");
+        when(localization.getMessage("unit.month.singular")).thenReturn("M_ONE");
+        when(localization.getMessage("unit.month.plural")).thenReturn("M_MANY");
+        when(localization.getMessage("unit.year.singular")).thenReturn("Y_ONE");
+        when(localization.getMessage("unit.year.plural")).thenReturn("Y_MANY");
         return localization;
     }
 
