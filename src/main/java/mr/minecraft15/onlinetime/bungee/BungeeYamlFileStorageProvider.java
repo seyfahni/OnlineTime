@@ -137,25 +137,10 @@ public class BungeeYamlFileStorageProvider implements FileStorageProvider {
         rwLock.readLock().lock();
         try {
             checkClosed();
-            return readAllRecursive("", storage.getKeys());
+            return BungeeConfigurationUtil.readAllRecursive(storage, "");
         } finally {
             rwLock.readLock().unlock();
         }
-    }
-
-    private Map<String, ?> readAllRecursive(String basePath, Collection<String> keys) {
-        String subPathPrefix = basePath == null || basePath.isEmpty() ? "" : basePath + ".";
-        Map<String, Object> data = new HashMap<>();
-        Configuration subStorage = storage.getSection(basePath);
-        for (String key : keys) {
-            Object part = subStorage.get(key, null);
-            if (part instanceof Configuration) {
-                data.putAll(readAllRecursive(subPathPrefix + key, subStorage.getKeys()));
-            } else  {
-                data.put(subPathPrefix + key, part);
-            }
-        }
-        return data;
     }
 
     @Override

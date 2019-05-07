@@ -45,6 +45,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 
 public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
 
@@ -196,31 +197,11 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
     }
 
     private Localization loadLocalization(Configuration langConfig, String language) {
-        Configuration translationConfig = langConfig.getSection(language);
-        Map<String, String> translations = new HashMap<>();
-        for (String key : translationConfig.getKeys()) {
-            Object part = translationConfig.get(key, null);
-            if (part instanceof Configuration) {
-                translations.putAll(translationRecursive(translationConfig, key));
-            } else if (part instanceof String) {
-                translations.put(key, (String) part);
-            } // else ignore
-        }
+        Map<String, String> translations = BungeeConfigurationUtil
+                .readAllRecursive(langConfig.getSection(language), "").entrySet().stream()
+            .filter(entry -> entry.getValue() instanceof String)
+            .collect(Collectors.toMap(Map.Entry::getKey, entry -> (String) entry.getValue()));
         return new Localization(translations);
-    }
-
-    private Map<String, String> translationRecursive(Configuration translationConfig, String basePath) {
-        Map<String, String> translations = new HashMap<>();
-        Configuration currentConfig = basePath.isEmpty() ? translationConfig : translationConfig.getSection(basePath);
-        for (String key : currentConfig.getKeys()) {
-            Object part = currentConfig.get(key, null);
-            if (part instanceof Configuration) {
-                translations.putAll(translationRecursive(translationConfig, basePath + "." + key));
-            } else if (part instanceof String) {
-                translations.put(basePath + "." + key, (String) part);
-            } // else ignore
-        }
-        return translations;
     }
 
     private String[] getUnits(Configuration langConfig, String language, String unit) {
