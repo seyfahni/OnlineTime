@@ -54,7 +54,7 @@ public class BukkitCommandSenderAdapter implements PluginCommandSender {
 
     @Override
     public void sendMessage(MineDown message) {
-        sender.sendMessage(message.toComponent());
+        sender.spigot().sendMessage(message.toComponent());
     }
 
     @Override
