@@ -22,25 +22,26 @@
  * SOFTWARE.
  */
 
-package mr.minecraft15.onlinetime.common;
+package mr.minecraft15.onlinetime.api;
 
-public class StorageException extends Exception {
+import mr.minecraft15.onlinetime.common.StorageException;
 
-    private static final long serialVersionUID = 6481231511736507320L;
+import java.util.Map;
+import java.util.Set;
 
-    public StorageException() {
-        super();
-    }
+public interface FileStorageProvider extends AutoCloseable {
 
-    public StorageException(String message) {
-        super(message);
-    }
+    Object read(String path) throws StorageException;
 
-    public StorageException(Throwable cause) {
-        super(cause);
-    }
+    Map<String, ?> read(Set<String> paths) throws StorageException;
 
-    public StorageException(String message, Throwable cause) {
-        super(message, cause);
-    }
+    void write(String path, Object data) throws StorageException;
+
+    void delete(String path) throws StorageException;
+
+    Map<String, ?> readAll() throws StorageException;
+
+    void writeAll(Map<String, ?> data) throws StorageException;
+
+    void close() throws StorageException;
 }

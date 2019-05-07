@@ -204,7 +204,7 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
                 translations.putAll(translationRecursive(translationConfig, key));
             } else if (part instanceof String) {
                 translations.put(key, (String) part);
-            }// else ignore
+            } // else ignore
         }
         return new Localization(translations);
     }
@@ -308,8 +308,8 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
     }
 
     private void loadYamlStorage() throws StorageException {
-        this.playerNameStorage = new YamlPlayerNameStorage(this, "names.yml", saveInterval);
-        this.onlineTimeStorage = new AccumulatingOnlineTimeStorage(new YamlOnlineTimeStorage(this,"time.yml", saveInterval));
+        this.playerNameStorage = new FilePlayerNameStorage(new BungeeYamlFileStorageProvider(this, "names.yml"));
+        this.onlineTimeStorage = new AccumulatingOnlineTimeStorage(new FileOnlineTimeStorage(new BungeeYamlFileStorageProvider(this, "time.yml")));
     }
 
     private Optional<String> getOptionalPlayerName(UUID uuid) {
@@ -353,11 +353,9 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
 
     @Override
     public Optional<PlayerData> findPlayer(String identifier) {
-        Matcher uuidMatcher = UuidUtil.UUID_PATTERN.matcher(identifier);
-        if (uuidMatcher.matches()) {
-            UUID uuid = UUID.fromString(uuidMatcher.group(1) + "-" + uuidMatcher.group(2) + "-" + uuidMatcher.group(3) + "-" + uuidMatcher.group(4) + "-" + uuidMatcher.group(5));
-            Optional<String> name = getOptionalPlayerName(uuid);
-            return Optional.of(new PlayerData(uuid, name));
+        Optional<UUID> optionalUuid = UuidUtil.fromString(identifier);
+        if (optionalUuid.isPresent()) {
+            return optionalUuid.map(uuid -> new PlayerData(uuid, getOptionalPlayerName(uuid)));
         } else {
             return getOptionalPlayerUuid(identifier)
                     .map(uuid -> new PlayerData(uuid, Optional.of(identifier)));

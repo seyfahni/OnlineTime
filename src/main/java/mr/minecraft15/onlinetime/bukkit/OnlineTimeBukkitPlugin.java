@@ -194,8 +194,8 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
                 case "yml":
                 case "yaml":
                 case "file":
-                    getLogger().severe("yaml storage not implemented yet");
-                    return false;
+                    loadYamlStorage();
+                    return true;
                 case "sql":
                 case "mysql":
                 case "mariadb":
@@ -211,6 +211,11 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
             getLogger().log(Level.SEVERE, "could not initialize storage", ex);
             return false;
         }
+    }
+
+    private void loadYamlStorage() throws StorageException {
+        this.playerNameStorage = new FilePlayerNameStorage(new BukkitYamlFileStorageProvider(this, "names.yml"));
+        this.onlineTimeStorage = new AccumulatingOnlineTimeStorage(new FileOnlineTimeStorage(new BukkitYamlFileStorageProvider(this, "time.yml")));
     }
 
     private void loadMysqlStorage() throws StorageException {
@@ -249,11 +254,9 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
 
     @Override
     public Optional<PlayerData> findPlayer(String identifier) {
-        Matcher uuidMatcher = UuidUtil.UUID_PATTERN.matcher(identifier);
-        if (uuidMatcher.matches()) {
-            UUID uuid = UUID.fromString(uuidMatcher.group(1) + "-" + uuidMatcher.group(2) + "-" + uuidMatcher.group(3) + "-" + uuidMatcher.group(4) + "-" + uuidMatcher.group(5));
-            Optional<String> name = getOptionalPlayerName(uuid);
-            return Optional.of(new PlayerData(uuid, name));
+        Optional<UUID> optionalUuid = UuidUtil.fromString(identifier);
+        if (optionalUuid.isPresent()) {
+            return optionalUuid.map(uuid -> new PlayerData(uuid, getOptionalPlayerName(uuid)));
         } else {
             return getOptionalPlayerUuid(identifier)
                     .map(uuid -> new PlayerData(uuid, Optional.of(identifier)));
