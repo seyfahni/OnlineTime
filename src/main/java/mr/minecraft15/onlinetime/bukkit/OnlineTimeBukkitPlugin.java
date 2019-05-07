@@ -105,8 +105,11 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
         this.saveInterval = config.getLong("saveinterval", 30);
         this.storageMethod = config.getString("storage", "yaml");
 
-        saveResource("messages.yml", false);
-        FileConfiguration langConfig = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "messages.yml"));
+        File translationFile = new File(getDataFolder(), "messages.yml");
+        if (!translationFile.exists()) {
+            saveResource("messages.yml", false);
+        }
+        FileConfiguration langConfig = YamlConfiguration.loadConfiguration(translationFile);
         langConfig.setDefaults(YamlConfiguration.loadConfiguration(getTextResource("messages.yml")));
 
         String language = config.getString("language");
@@ -220,9 +223,12 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
     private void loadMysqlStorage() throws StorageException {
         Properties properties = new Properties();
 
-        saveResource("database.properties", false);
+        File databasePropertiesFile = new File(getDataFolder(), "database.properties");
+        if (!databasePropertiesFile.exists()) {
+            saveResource("database.properties", false);
+        }
 
-        try (Reader fileReader = new FileReader(new File(getDataFolder(), "database.properties"));
+        try (Reader fileReader = new FileReader(databasePropertiesFile);
              BufferedReader reader = new BufferedReader(fileReader)) {
             properties.load(reader);
         } catch (IOException ex) {
