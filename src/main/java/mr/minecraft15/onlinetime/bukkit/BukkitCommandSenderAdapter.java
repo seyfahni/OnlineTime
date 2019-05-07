@@ -29,16 +29,25 @@ import mr.minecraft15.onlinetime.api.PlayerData;
 import mr.minecraft15.onlinetime.api.PluginCommandSender;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
 
 public class BukkitCommandSenderAdapter implements PluginCommandSender {
 
+    private final Plugin plugin;
     private final CommandSender sender;
     private final Optional<PlayerData> player;
 
-    public BukkitCommandSenderAdapter(CommandSender sender) {
-        this.sender = sender;
+    public BukkitCommandSenderAdapter(Plugin plugin, CommandSender sender) {
+        this.plugin = Objects.requireNonNull(plugin);
+        this.sender = Objects.requireNonNull(sender);
         if (sender instanceof Player) {
             Player player = (Player) sender;
             this.player = Optional.of(new PlayerData(player.getUniqueId(), Optional.of(player.getName())));
@@ -49,12 +58,22 @@ public class BukkitCommandSenderAdapter implements PluginCommandSender {
 
     @Override
     public boolean hasPermission(String permissionNode) {
-        return sender.hasPermission(permissionNode);
+        if (plugin.getServer().isPrimaryThread()) {
+            return sender.hasPermission(permissionNode);
+        } else {
+            try {
+                Future<Boolean> hasPermission = plugin.getServer().getScheduler().callSyncMethod(plugin, () -> sender.hasPermission(permissionNode));
+                return hasPermission.get(100, TimeUnit.MILLISECONDS);
+            } catch (TimeoutException | ExecutionException | InterruptedException ex) {
+                plugin.getLogger().log(Level.WARNING, "Permission query stopped early! Assuming false as default.", ex);
+                return false;
+            }
+        }
     }
 
     @Override
     public void sendMessage(MineDown message) {
-        sender.spigot().sendMessage(message.toComponent());
+        plugin.getServer().getScheduler().runTask(plugin, () -> sender.spigot().sendMessage(message.toComponent()));
     }
 
     @Override

@@ -43,7 +43,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Level;
-import java.util.regex.Matcher;
 
 public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
 
@@ -76,9 +75,9 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
         }
 
         getCommand("onlinetime").setExecutor(new PluginCommandBukkitAdapter(
-                new OnlineTimeCommand(this, localization, onlineTimeStorage)));
+                new OnlineTimeCommand(this, localization, onlineTimeStorage), this));
         getCommand("onlinetimeadmin").setExecutor(new PluginCommandBukkitAdapter(
-                new OnlineTimeAdminCommand(this, localization, parser, onlineTimeStorage)));
+                new OnlineTimeAdminCommand(this, localization, parser, onlineTimeStorage), this));
         PluginManager pluginManager = getServer().getPluginManager();
         pluginManager.registerEvents(new PlayerNameBukkitListener(this, playerNameStorage), this);
         pluginManager.registerEvents(new OnlineTimeAccumulatorBukkitListener(this, onlineTimeStorage), this);

@@ -28,18 +28,23 @@ import mr.minecraft15.onlinetime.api.PluginCommand;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.plugin.Plugin;
+
+import java.util.Objects;
 
 public class PluginCommandBukkitAdapter implements CommandExecutor {
 
     private final PluginCommand command;
+    private final Plugin plugin;
 
-    public PluginCommandBukkitAdapter(PluginCommand command) {
-        this.command = command;
+    public PluginCommandBukkitAdapter(PluginCommand command, Plugin plugin) {
+        this.command = Objects.requireNonNull(command);
+        this.plugin = Objects.requireNonNull(plugin);
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-        this.command.execute(new BukkitCommandSenderAdapter(sender), args);
+        this.command.execute(new BukkitCommandSenderAdapter(plugin, sender), args);
         return true;
     }
 }
