@@ -61,8 +61,8 @@ public class OnlineTimeCommand implements PluginCommand {
                     if (optionalPlayer.isPresent()) {
                         player = optionalPlayer.get();
                     } else {
-                        sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.notfound"))
-                                .replace("player", args[0]));
+                        sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.notfound")
+                                .replace("player", args[0])));
                         return;
                     }
                 } else {
@@ -84,8 +84,8 @@ public class OnlineTimeCommand implements PluginCommand {
                     if (optionalTime.isPresent()) {
                         time = optionalTime.getAsLong();
                     } else {
-                        sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.notfound"))
-                                .replace("player", player.getRepresentation()));
+                        sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.notfound")
+                                .replace("player", player.getRepresentation())));
                         return;
                     }
                 } catch (StorageException ex) {
@@ -94,11 +94,11 @@ public class OnlineTimeCommand implements PluginCommand {
                     return;
                 }
                 if (isTargetSender) {
-                    sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.timeseen.self"))
-                        .replace("time", TimeUtil.formatTime(time, localization)));
+                    sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.timeseen.self")
+                        .replace("time", TimeUtil.formatTime(time, localization))));
                 } else {
-                    sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.timeseen.other"))
-                        .replace("player", player.getRepresentation(), "time", TimeUtil.formatTime(time, localization)));
+                    sender.sendMessage(plugin.getFormattedMessage(localization.getMessage("message.command.onlinetime.timeseen.other")
+                        .replace("player", player.getRepresentation(), "time", TimeUtil.formatTime(time, localization))));
                 }
             });
         } else {
