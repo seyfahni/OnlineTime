@@ -53,8 +53,10 @@ public class FileOnlineTimeStorage implements OnlineTimeStorage {
 
     private OptionalLong internalReadOnlineTime(String path) throws StorageException {
         Object result = storageProvider.read(path);
-        if (result instanceof Long || result instanceof Integer) {
+        if (result instanceof Long) {
             return OptionalLong.of((long) result);
+        } else if (result instanceof Integer) {
+            return OptionalLong.of((int) result);
         } else {
             return OptionalLong.empty();
         }
