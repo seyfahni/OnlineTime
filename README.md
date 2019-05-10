@@ -10,6 +10,7 @@ This plugin is based on [Mr_Minecraft15's plugin OnlineTime](https://github.com/
 - Every message (including prefix) is customizable!
 - Store data in YAML or MySQL
 - extreme multiprogramming, zero blocking operations on I/O-threads cause zero lag
+- [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/) support
 
 ## Commands:
 | Command                                            | Description                                      |
@@ -43,14 +44,28 @@ The time argument accepts values as follows:
 | `onlinetime.see.other` | see other players recorded online time |
 | `onlinetime.admin`     | modify all entries                     |
 
+## PlaceholderAPI
+| Placeholder                 | Description                                       | Example (with 5d 2h 7min)   |
+| --------------------------- | ------------------------------------------------- | --------------------------- |
+| `%onlinetime_string%`       | formatted string (same as when using /onlinetime) | `5 days 2 hours 7 minutes`  |
+| `%onlinetime_only_seconds%` | seconds, as in formatted string (without unit)    | `0`                         |
+| `%onlinetime_only_minutes%` | minutes, as in formatted string (without unit)    | `7`                         |
+| `%onlinetime_only_hours%`   | hours, as in formatted string (without unit)      | `2`                         |
+| `%onlinetime_only_days%`    | days, as in formatted string (without unit)       | `5`                         |
+| `%onlinetime_only_weeks%`   | weeks, as in formatted string (without unit)      | `0`                         |
+| `%onlinetime_only_months%`  | months, as in formatted string (without unit)     | `0`                         |
+| `%onlinetime_only_years%`   | years, as in formatted string (without unit)      | `0`                         |
+| `%onlinetime_all_seconds%`  | whole time in seconds                             | `439620`                    |
+| `%onlinetime_all_minutes%`  | whole time in minutes                             | `7327`                      |
+| `%onlinetime_all_hours%`    | whole time in hours                               | `122`                       |
+| `%onlinetime_all_days%`     | whole time in days                                | `5`                         |
+| `%onlinetime_all_weeks%`    | whole time in weeks                               | `0`                         |
+| `%onlinetime_all_months%`   | whole time in months                              | `0`                         |
+| `%onlinetime_all_years%`    | whole time in years                               | `0`                         |
+
 ## Planned / Ideas:
 
-| Priority | Status | Description                                                       |
-| -------- | ------ | ----------------------------------------------------------------- |
-| LOW      | NEW    | import / data transfer (YAML to MySQL and back)                   |
-| LOW      | NEW    | personal language per player (as long as configured)              |
-| LOW      | NEW    | conditions for time counting                                      |
-| LOW      | NEW    | allow selection of time units to be used (eg. only days an hours) |
+See [enhancement labeled issues](https://github.com/seyfahni/OnlineTime/labels/enhancement).
 
 ## License:
 This plugin is licensed under the MIT license. For further information see [LICENSE](https://github.com/seyfahni/OnlineTime/blob/master/LICENSE).
