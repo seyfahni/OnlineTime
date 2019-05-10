@@ -112,6 +112,10 @@
       <id>minebench-repo</id>
       <url>http://repo.minebench.de/</url>
     </repository>
+    <repository>
+      <id>placeholderapi</id>
+      <url>http://repo.extendedclip.com/content/repositories/placeholderapi/</url>
+    </repository>
   </repositories>
 
   <dependencies>
@@ -125,6 +129,12 @@
       <groupId>io.github.waterfallmc</groupId>
       <artifactId>waterfall-api</artifactId>
       <version>1.14-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>me.clip</groupId>
+      <artifactId>placeholderapi</artifactId>
+      <version>2.10.1</version>
       <scope>provided</scope>
     </dependency>
     <dependency>

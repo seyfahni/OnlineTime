@@ -53,10 +53,8 @@ public class FileOnlineTimeStorage implements OnlineTimeStorage {
 
     private OptionalLong internalReadOnlineTime(String path) throws StorageException {
         Object result = storageProvider.read(path);
-        if (result instanceof Long) {
-            return OptionalLong.of((long) result);
-        } else if (result instanceof Integer) {
-            return OptionalLong.of((int) result);
+        if (result instanceof Long || result instanceof Integer) {
+            return OptionalLong.of(((Number) result).longValue());
         } else {
             return OptionalLong.empty();
         }
@@ -73,7 +71,7 @@ public class FileOnlineTimeStorage implements OnlineTimeStorage {
         for (Map.Entry<String, ?> entry : storedTime.entrySet()) {
             Object result = entry.getValue();
             if (result instanceof Long || result instanceof Integer) {
-                long time = (long) result;
+                long time = ((Number) result).longValue();
                 writeData.compute(entry.getKey(), (key, value) -> null == value ? null : time + value);
             }
         }

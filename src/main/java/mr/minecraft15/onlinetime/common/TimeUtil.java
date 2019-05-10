@@ -24,9 +24,12 @@
 
 package mr.minecraft15.onlinetime.common;
 
+import java.util.Objects;
+
 public final class TimeUtil {
 
     public static String formatTime(long seconds, Localization localization) {
+        Objects.requireNonNull(localization);
         long sec = seconds;
 
         long min = sec / 60;

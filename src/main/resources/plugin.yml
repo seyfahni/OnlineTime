@@ -4,6 +4,7 @@ version: '${version}'
 api-version: '1.13'
 author: 'seyfahni'
 website: 'https://github.com/seyfahni/OnlineTime'
+softdepend: [PlaceholderAPI]
 commands:
   onlinetime:
     aliases:

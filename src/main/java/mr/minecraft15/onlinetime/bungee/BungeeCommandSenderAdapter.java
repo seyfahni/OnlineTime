@@ -35,15 +35,15 @@ import java.util.Optional;
 public class BungeeCommandSenderAdapter implements PluginCommandSender {
 
     private final CommandSender sender;
-    private final Optional<PlayerData> player;
+    private final PlayerData player;
 
     public BungeeCommandSenderAdapter(CommandSender sender) {
         this.sender = sender;
         if (sender instanceof ProxiedPlayer) {
             ProxiedPlayer player = (ProxiedPlayer) sender;
-            this.player = Optional.of(new PlayerData(player.getUniqueId(), Optional.of(player.getName())));
+            this.player = new PlayerData(player.getUniqueId(), player.getName());
         } else {
-            this.player = Optional.empty();
+            this.player = null;
         }
     }
 
@@ -64,6 +64,6 @@ public class BungeeCommandSenderAdapter implements PluginCommandSender {
 
     @Override
     public Optional<PlayerData> asPlayer() {
-        return player;
+        return Optional.ofNullable(player);
     }
 }

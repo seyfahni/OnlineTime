@@ -51,6 +51,7 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
     private PluginScheduler scheduler;
 
     private MineDown messageFormat;
+    private String defaultLanguage;
     private Localization localization;
     private TimeParser parser;
 
@@ -82,6 +83,8 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
         pluginManager.registerEvents(new PlayerNameBukkitListener(this, playerNameStorage), this);
         pluginManager.registerEvents(new OnlineTimeAccumulatorBukkitListener(this, onlineTimeStorage), this);
         flushCacheTask = getServer().getScheduler().runTaskTimerAsynchronously(this, this::flushOnlineTimeCache, saveInterval * 10, saveInterval * 20);
+
+        registerPlaceholderApi();
     }
 
     private boolean loadConfig() {
@@ -112,18 +115,18 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
         FileConfiguration langConfig = YamlConfiguration.loadConfiguration(translationFile);
         langConfig.setDefaults(YamlConfiguration.loadConfiguration(getTextResource("messages.yml")));
 
-        String language = config.getString("language");
-        this.localization = loadLocalization(langConfig, language);
+        defaultLanguage = config.getString("language");
+        this.localization = loadLocalization(langConfig, defaultLanguage);
 
         try {
             parser = TimeParser.builder()
-                    .addUnit(1, getUnits(langConfig, language, "second"))
-                    .addUnit(60, getUnits(langConfig, language, "minute"))
-                    .addUnit(60 * 60, getUnits(langConfig, language, "hour"))
-                    .addUnit(60 * 60 * 24, getUnits(langConfig, language, "day"))
-                    .addUnit(60 * 60 * 24 * 7, getUnits(langConfig, language, "week"))
-                    .addUnit(60 * 60 * 24 * 30, getUnits(langConfig, language, "month"))
-                    .addUnit(60 * 60 * 24 * 30 * 12, getUnits(langConfig, language, "year"))
+                    .addUnit(1, getUnits(langConfig, defaultLanguage, "second"))
+                    .addUnit(60, getUnits(langConfig, defaultLanguage, "minute"))
+                    .addUnit(60 * 60, getUnits(langConfig, defaultLanguage, "hour"))
+                    .addUnit(60 * 60 * 24, getUnits(langConfig, defaultLanguage, "day"))
+                    .addUnit(60 * 60 * 24 * 7, getUnits(langConfig, defaultLanguage, "week"))
+                    .addUnit(60 * 60 * 24 * 30, getUnits(langConfig, defaultLanguage, "month"))
+                    .addUnit(60 * 60 * 24 * 30 * 12, getUnits(langConfig, defaultLanguage, "year"))
                     .build();
         } catch (IllegalArgumentException ex) {
             getLogger().log(Level.SEVERE, "Could not create time parser.", ex);
@@ -247,6 +250,13 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
         }
     }
 
+    private void registerPlaceholderApi() {
+        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new OnlineTimePlaceholderExpansion(this, onlineTimeStorage).register();
+            getLogger().info("Hooked into PlaceholderAPI.");
+        }
+    }
+
     @Override
     public void onDisable() {
         if (onlineTimeStorage != null) {
@@ -276,10 +286,10 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
     public Optional<PlayerData> findPlayer(String identifier) {
         Optional<UUID> optionalUuid = UuidUtil.fromString(identifier);
         if (optionalUuid.isPresent()) {
-            return optionalUuid.map(uuid -> new PlayerData(uuid, getOptionalPlayerName(uuid)));
+            return optionalUuid.map(uuid -> new PlayerData(uuid, getOptionalPlayerName(uuid).orElse(null)));
         } else {
             return getOptionalPlayerUuid(identifier)
-                    .map(uuid -> new PlayerData(uuid, Optional.of(identifier)));
+                    .map(uuid -> new PlayerData(uuid, identifier));
         }
     }
 
@@ -315,5 +325,34 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
                 .replace("message", rawMessage
                     .replace("server", serverName)
                     .toComponent());
+    }
+
+    @Override
+    public String getAuthors() {
+        return getDescription().getAuthors().toString();
+    }
+
+    @Override
+    public String getVersion() {
+        return getDescription().getVersion();
+    }
+
+    @Override
+    public Localization getDefaultLocalization() {
+        return localization;
+    }
+
+    @Override
+    public Optional<Localization> getLocalization(String language) {
+        if (Objects.equals(defaultLanguage, language)) {
+            return Optional.of(getDefaultLocalization());
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public Localization getLocalizationFor(PlayerData player) {
+        return getDefaultLocalization();
     }
 }

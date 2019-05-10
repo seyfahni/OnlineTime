@@ -25,6 +25,7 @@
 package mr.minecraft15.onlinetime.api;
 
 import de.themoep.minedown.MineDown;
+import mr.minecraft15.onlinetime.common.Localization;
 
 import java.util.Optional;
 import java.util.logging.Logger;
@@ -33,6 +34,27 @@ import java.util.logging.Logger;
  * This proxy allows access to basic server/proxy methods required for interaction with the underlying specific API.
  */
 public interface PluginProxy {
+
+    /**
+     * Get the plugins name.
+     *
+     * @return name
+     */
+    String getName();
+
+    /**
+     * Get the plugins version.
+     *
+     * @return version
+     */
+    String getVersion();
+
+    /**
+     * Get the plugins authors.
+     *
+     * @return authors
+     */
+    String getAuthors();
 
     /**
      * Get the plugins logger.
@@ -58,5 +80,36 @@ public interface PluginProxy {
      */
     Optional<PlayerData> findPlayer(String identifier);
 
+    /**
+     * Apply the defined format for messages to the raw message. Usually this adds the plugins prefix for players to
+     * identify the chat messages sender.
+     *
+     * @param raw the raw message
+     * @return the formatted message
+     */
     MineDown getFormattedMessage(MineDown raw);
+
+    /**
+     * Get the default localization.
+     *
+     * @return the default localization
+     */
+    Localization getDefaultLocalization();
+
+    /**
+     * Get the localization for given language if present. Usually used with
+     * {@code .orElseGet(plugin::getDedaultLocalization)}.
+     *
+     * @return the languages localization
+     */
+    Optional<Localization> getLocalization(String language);
+
+    /**
+     * Get the localization a specific player uses. If player specific localizations are not enabled this will return
+     * the same as {@link #getDefaultLocalization()}.
+     *
+     * @param player the player
+     * @return the players preferred localization
+     */
+    Localization getLocalizationFor(PlayerData player);
 }

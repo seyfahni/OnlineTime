@@ -36,7 +36,7 @@ import java.util.UUID;
 public final class PlayerData {
 
     private final UUID uuid;
-    private final Optional<String> name;
+    private final String name;
     private final String representation;
 
     /**
@@ -45,16 +45,16 @@ public final class PlayerData {
      * @param uuid the players UUID
      * @param name the players name if known
      */
-    public PlayerData(UUID uuid, Optional<String> name) {
+    public PlayerData(UUID uuid, String name) {
         this.uuid = Objects.requireNonNull(uuid);
-        this.name = Objects.requireNonNull(name);
-        this.representation = name.orElseGet(uuid::toString);
+        this.name = name;
+        this.representation = null != name ? name : uuid.toString();
     }
 
     /**
      * Get the players UUID.
      *
-     * @return
+     * @return players uuid
      */
     public UUID getUuid() {
         return uuid;
@@ -63,16 +63,16 @@ public final class PlayerData {
     /**
      * Get the players name if available.
      *
-     * @return
+     * @return players name
      */
     public Optional<String> getName() {
-        return name;
+        return Optional.ofNullable(name);
     }
 
     /**
      * Get a user-friendly representation of this player. This is the player name if available and otherwise the uuid.
      *
-     * @return
+     * @return players name if available, else players uuid
      */
     public String getRepresentation() {
         return representation;

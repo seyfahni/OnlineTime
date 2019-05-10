@@ -55,6 +55,7 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
     private PluginScheduler scheduler;
 
     private MineDown messageFormat;
+    private String defaultLanguage;
     private Localization localization;
     private TimeParser parser;
 
@@ -118,6 +119,25 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
                     .toComponent());
     }
 
+    @Override
+    public Localization getDefaultLocalization() {
+        return localization;
+    }
+
+    @Override
+    public Optional<Localization> getLocalization(String language) {
+        if (Objects.equals(defaultLanguage, language)) {
+            return Optional.of(getDefaultLocalization());
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public Localization getLocalizationFor(PlayerData player) {
+        return getDefaultLocalization();
+    }
+
     private boolean loadConfig() {
         if (!getDataFolder().exists()) {
             getDataFolder().mkdir();
@@ -148,17 +168,17 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
             getLogger().severe("Could not load language configuration.");
             return false;
         }
-        String language = config.getString("language");
-        this.localization = loadLocalization(langConfig, language);
+        defaultLanguage = config.getString("language");
+        this.localization = loadLocalization(langConfig, defaultLanguage);
         try {
             parser = TimeParser.builder()
-                    .addUnit(1, getUnits(langConfig, language, "second"))
-                    .addUnit(60, getUnits(langConfig, language, "minute"))
-                    .addUnit(60 * 60, getUnits(langConfig, language, "hour"))
-                    .addUnit(60 * 60 * 24, getUnits(langConfig, language, "day"))
-                    .addUnit(60 * 60 * 24 * 7, getUnits(langConfig, language, "week"))
-                    .addUnit(60 * 60 * 24 * 30, getUnits(langConfig, language, "month"))
-                    .addUnit(60 * 60 * 24 * 30 * 12, getUnits(langConfig, language, "year"))
+                    .addUnit(1, getUnits(langConfig, defaultLanguage, "second"))
+                    .addUnit(60, getUnits(langConfig, defaultLanguage, "minute"))
+                    .addUnit(60 * 60, getUnits(langConfig, defaultLanguage, "hour"))
+                    .addUnit(60 * 60 * 24, getUnits(langConfig, defaultLanguage, "day"))
+                    .addUnit(60 * 60 * 24 * 7, getUnits(langConfig, defaultLanguage, "week"))
+                    .addUnit(60 * 60 * 24 * 30, getUnits(langConfig, defaultLanguage, "month"))
+                    .addUnit(60 * 60 * 24 * 30 * 12, getUnits(langConfig, defaultLanguage, "year"))
                     .build();
         } catch (IllegalArgumentException ex) {
             getLogger().log(Level.SEVERE, "Could not create time parser.", ex);
@@ -327,6 +347,21 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
     }
 
     @Override
+    public String getName() {
+        return getDescription().getName();
+    }
+
+    @Override
+    public String getVersion() {
+        return getDescription().getVersion();
+    }
+
+    @Override
+    public String getAuthors() {
+        return getDescription().getAuthor();
+    }
+
+    @Override
     public PluginScheduler getScheduler() {
         return scheduler;
     }
@@ -335,10 +370,10 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
     public Optional<PlayerData> findPlayer(String identifier) {
         Optional<UUID> optionalUuid = UuidUtil.fromString(identifier);
         if (optionalUuid.isPresent()) {
-            return optionalUuid.map(uuid -> new PlayerData(uuid, getOptionalPlayerName(uuid)));
+            return optionalUuid.map(uuid -> new PlayerData(uuid, getOptionalPlayerName(uuid).orElse(null)));
         } else {
             return getOptionalPlayerUuid(identifier)
-                    .map(uuid -> new PlayerData(uuid, Optional.of(identifier)));
+                    .map(uuid -> new PlayerData(uuid, identifier));
         }
     }
 }

@@ -43,16 +43,16 @@ public class BukkitCommandSenderAdapter implements PluginCommandSender {
 
     private final Plugin plugin;
     private final CommandSender sender;
-    private final Optional<PlayerData> player;
+    private final PlayerData player;
 
     public BukkitCommandSenderAdapter(Plugin plugin, CommandSender sender) {
         this.plugin = Objects.requireNonNull(plugin);
         this.sender = Objects.requireNonNull(sender);
         if (sender instanceof Player) {
             Player player = (Player) sender;
-            this.player = Optional.of(new PlayerData(player.getUniqueId(), Optional.of(player.getName())));
+            this.player = new PlayerData(player.getUniqueId(), player.getName());
         } else {
-            this.player = Optional.empty();
+            this.player = null;
         }
     }
 
@@ -83,6 +83,6 @@ public class BukkitCommandSenderAdapter implements PluginCommandSender {
 
     @Override
     public Optional<PlayerData> asPlayer() {
-        return player;
+        return Optional.ofNullable(player);
     }
 }
