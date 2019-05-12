@@ -1,6 +1,137 @@
 # See https://github.com/Phoenix616/MineDown#syntax
 # You can add a new language by duplicating one section (eg. en) and then modifying the values and language tag.
 # If you translate the messages to your language, feel free to create a pull request to add them by default.
+en:
+  unit:
+    second:
+      singular: 'second'
+      plural: 'seconds'
+      identifier:
+        - 's'
+        - 'sec'
+    minute:
+      singular: 'minute'
+      plural: 'minutes'
+      identifier:
+        - 'min'
+    hour:
+      singular: 'hour'
+      plural: 'hours'
+      identifier:
+        - 'h'
+    day:
+      singular: 'day'
+      plural: 'days'
+      identifier:
+        - 'd'
+    week:
+      singular: 'week'
+      plural: 'weeks'
+      identifier:
+        - 'w'
+    month:
+      singular: 'month'
+      plural: 'months'
+      identifier:
+        - 'm'
+    year:
+      singular: 'year'
+      plural: 'years'
+      identifier:
+        - 'y'
+        - 'yhr'
+  message:
+    nopermission: '&gray&You don''t have the required permissions to do that.'
+    command:
+      onlinetime:
+        usage: '&gray&Use [/onlinetime [player]](dark_aqua) to see a players onlinetime.'
+        notfound: '&gray&The player [%player%](dark_aqua) has not played on %server% yet.'
+        timeseen:
+          self: '&gray&You have played for [%time%](dark_aqua) on %server%.'
+          other: '&gray&The player [%player%](dark_aqua) has already played for [%time%](dark_aqua) on %server%.'
+      onlinetimeadmin:
+        usage: '&gray&Use [/onlinetimeadmin (set|mod|reset) [player] [time]](dark_aqua) to edit a players onlinetime.'
+        missinguuid: '&gray&The player [%player%](dark_aqua) is unknown.'
+        nottime: '&gray&The given time argument [%argument%](dark_aqua) is not valid.'
+        set:
+          usage: '&gray&Use [/onlinetimeadmin set [player] [time]](dark_aqua) to set a players onlinetime.'
+          success: '&gray&The onlinetime of player [%player%](dark_aqua) got successfully set to [%time%](dark_aqua).'
+          negativetime: '&gray&The given time [%time%](dark_aqua) is negative, but must at least be zero.'
+        modify:
+          usage: '&gray&Use [/onlinetimeadmin mod [player] [time]](dark_aqua) to modify a players onlinetime.'
+          success: '&gray&The onlinetime of player [%player%](dark_aqua) got successfully modified by [%time%](dark_aqua).'
+          negativetimesum: '&gray&The given time [%time%](dark_aqua) would cause a negative onlinetime, but must at least be zero.'
+        reset:
+          usage: '&gray&Use [/onlinetimeadmin reset [player]](dark_aqua) to reset a players onlinetime.'
+          success: '&gray&The onlinetime of player [%player%](dark_aqua) got successfully reset.'
+de:
+  unit:
+    second:
+      singular: 'Sekunde'
+      plural: 'Sekunden'
+      identifier:
+        - 's'
+        - 'sec'
+        - 'sek'
+    minute:
+      singular: 'Minute'
+      plural: 'Minuten'
+      identifier:
+        - 'min'
+    hour:
+      singular: 'Stunde'
+      plural: 'Stunden'
+      identifier:
+        - 'h'
+        - 'std'
+    day:
+      singular: 'Tag'
+      plural: 'Tage'
+      identifier:
+        - 't'
+        - 'd'
+    week:
+      singular: 'Woche'
+      plural: 'Wochen'
+      identifier:
+        - 'w'
+        - 'wo'
+    month:
+      singular: 'Monat'
+      plural: 'Monate'
+      identifier:
+        - 'm'
+    year:
+      singular: 'Jahr'
+      plural: 'Jahre'
+      identifier:
+        - 'j'
+        - 'y'
+        - 'yhr'
+  message:
+    nopermission: '&gray&Dazu fehlen dir die Rechte.'
+    command:
+      onlinetime:
+        usage: '&gray&Benutze [/onlinetime [Spieler]](dark_aqua) um die Spielzeit anzuzeigen.'
+        notfound: '&gray&Der Spieler [%player%](dark_aqua) war noch nie auf %server%.'
+        timeseen:
+          self: '&gray&Du hast [%time%](dark_aqua) auf %server% gespielt.'
+          other: '&gray&Der Spieler [%player%](dark_aqua) hat [%time%](dark_aqua) auf %server% gespielt.'
+      onlinetimeadmin:
+        usage: '&gray&Benutze [/onlinetimeadmin (set|mod|reset) [player] [time]](dark_aqua) um die Spielzeit zu ändern.'
+        missinguuid: '&gray&Der Spieler [%player%](dark_aqua) ist unbekannt.'
+        nottime: '&gray&Das gegebene Zeitargument [%argument%](dark_aqua) hat ein ungültiges Format.'
+        set:
+          usage: '&gray&Benutze [/onlinetimeadmin set [player] [time]](dark_aqua) um die Spielzeit zu setzen.'
+          success: '&gray&Die Spielzeit von [%player%](dark_aqua) wurde auf [%time%](dark_aqua) gesetzt.'
+          negativetime: '&gray&Die gegebene Zeit [%time%](dark_aqua) ist negativ, muss aber mindestens Null sein.'
+        modify:
+          usage: '&gray&Benutze [/onlinetimeadmin mod [player] [time]](dark_aqua) um die Spielzeit zu modifizieren.'
+          success: '&gray&Die Spielzeit von [%player%](dark_aqua) wurde um [%time%](dark_aqua) geändert.'
+          negativetimesum: '&gray&Die gegebene Zeit [%time%](dark_aqua) würde in negativer Spielzeit resultieren, diese muss aber mindestens Null sein.'
+        reset:
+          usage: '&gray&Benutze [/onlinetimeadmin reset [player] [time]](dark_aqua) um die Spielzeit zu zurückzusetzen.'
+          success: '&gray&Die Spielzeit von [%player%](dark_aqua) wurde zurückgesetzt.'
 ja:
   unit:
     second:
