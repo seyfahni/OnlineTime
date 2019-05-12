@@ -70,16 +70,21 @@ public class AccumulatingOnlineTimeStorage implements OnlineTimeStorage {
         this.storage.addOnlineTimes(directWrite);
     }
 
-    public void registerOnlineTimeStart(UUID uuid, long when) throws StorageException {
-        onlineSince.put(uuid, when);
+    public void startAccumulating(UUID uuid, long when) throws StorageException {
+        Long from = onlineSince.put(uuid, when);
+        if (null != from) {
+            long previousOnlineTime = (when - from) / 1000;
+            storage.addOnlineTime(uuid, previousOnlineTime);
+        }
     }
 
-    public void saveOnlineTimeAfterDisconnect(UUID uuid, long when) throws StorageException {
+    public void stopAccumulatingAndSaveOnlineTime(UUID uuid, long when) throws StorageException {
         if (onlineSince.containsKey(uuid)) {
             Long from = onlineSince.remove(uuid);
-            if (from == null) return; // concurrent change
-            long currentOnlineTime = (when - from) / 1000;
-            storage.addOnlineTime(uuid, currentOnlineTime);
+            if (null != from) {
+                long currentOnlineTime = (when - from) / 1000;
+                storage.addOnlineTime(uuid, currentOnlineTime);
+            } // else already stopped concurrently
         }
     }
 

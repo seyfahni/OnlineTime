@@ -36,6 +36,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.plugin.messaging.PluginMessageRecipient;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.io.*;
@@ -46,7 +47,10 @@ import java.util.logging.Level;
 
 public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
 
-    private static final int CONFIG_VERSION = 1;
+    private static final int CONFIG_VERSION = 2;
+
+    private boolean loadSuccessful = false;
+    private String mode;
 
     private PluginScheduler scheduler;
 
@@ -66,10 +70,20 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
     private BukkitTask flushCacheTask;
 
     @Override
-    public void onEnable() {
+    public void onLoad() {
         this.scheduler = new BukkitSchedulerAdapter(this, getServer().getScheduler());
 
-        if (!(loadConfig() && loadStorage())) {
+        boolean success = false;
+        try {
+            success = loadConfig() && loadStorage();
+        } finally {
+            loadSuccessful = success;
+        }
+    }
+
+    @Override
+    public void onEnable() {
+        if (!loadSuccessful) {
             getLogger().log(Level.SEVERE, "Could not enable OnlineTime!");
             getServer().getPluginManager().disablePlugin(this);
             return;
@@ -103,6 +117,25 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
             }
         }
 
+        this.mode = config.getString("mode");
+        if (mode == null) {
+            getLogger().severe("undefined mode");
+            return false;
+        }
+
+        switch (mode) {
+            case "standalone":
+                return loadStandalone(config);
+            case "slave":
+                return loadSlave();
+            default:
+                getLogger().severe("invalid mode: " + mode);
+                return false;
+        }
+
+    }
+
+    private boolean loadStandalone(FileConfiguration config) {
         this.messageFormat = new MineDown(config.getString("messageformat"));
         this.serverName = new MineDown(config.getString("servername", "this server")).toComponent();
         this.saveInterval = config.getLong("saveinterval", 30);
@@ -135,11 +168,19 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
         return true;
     }
 
+    private boolean loadSlave() {
+        return true;
+    }
+
     private boolean migrateConfig(int currentConfigVersion) {
         switch (currentConfigVersion) {
             case 0:
                 getLogger().warning("Unspecified config version. Creating config backup and resetting everything...");
                 return backupAndRecreateConfig();
+            case 1:
+                getLogger().warning("Migrating config from version 1...");
+                return backupAndKeepConfig()
+                        && addModeToConfiguration();
             default:
                 getLogger().severe("Illegal config version! Creating config backup and resetting everything...");
                 return backupAndRecreateConfig();
@@ -162,6 +203,28 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
             getLogger().log(Level.SEVERE, "Could not backup old configuration, aborting mirgation...", ex);
             return false;
         }
+    }
+
+    private boolean backupAndKeepConfig() {
+        Path configFilePath = new File(getDataFolder(), "config.yml").toPath();
+        Path messagesFilePath = new File(getDataFolder(), "messages.yml").toPath();
+        Path databaseFilePath = new File(getDataFolder(), "database.properties").toPath();
+        try {
+            Files.copy(configFilePath, configFilePath.resolveSibling("config.old.yml"));
+            Files.copy(messagesFilePath, messagesFilePath.resolveSibling("messages.old.yml"));
+            Files.copy(databaseFilePath, databaseFilePath.resolveSibling("database.old.properties"));
+            return true;
+        } catch (IOException ex) {
+            getLogger().log(Level.SEVERE, "Could not backup old configuration, aborting mirgation...", ex);
+            return false;
+        }
+    }
+
+    private boolean addModeToConfiguration() {
+        FileConfiguration config = getConfig();
+        config.set("mode", "standalone");
+        saveConfig();
+        return true;
     }
 
     private Localization loadLocalization(FileConfiguration langConfig, String language) {
@@ -354,5 +417,32 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
     @Override
     public Localization getLocalizationFor(PlayerData player) {
         return getDefaultLocalization();
+    }
+
+    public void sendPluginMessage(PluginMessageRecipient target, String channel, Object... message) {
+        try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+             DataOutputStream out = new DataOutputStream(byteOut)) {
+            for (Object part : message) {
+                if (part instanceof String) {
+                    out.writeUTF((String) part);
+                } else if (part instanceof Integer) {
+                    out.writeInt((Integer) part);
+                } else if (part instanceof Long) {
+                    out.writeLong((Long) part);
+                } else if (part instanceof Float) {
+                    out.writeFloat((Float) part);
+                } else if (part instanceof Double) {
+                    out.writeDouble((Double) part);
+                } else if (part instanceof Boolean) {
+                    out.writeBoolean((Boolean) part);
+                } else {
+                    throw new IOException("invalid data " + part.toString());
+                }
+            }
+            target.sendPluginMessage(this, channel, byteOut.toByteArray());
+        } catch (IOException ex) {
+            getLogger().log(Level.SEVERE, null, ex);
+        }
+
     }
 }

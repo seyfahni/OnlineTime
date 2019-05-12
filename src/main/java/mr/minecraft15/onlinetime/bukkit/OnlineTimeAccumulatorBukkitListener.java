@@ -51,7 +51,7 @@ public class OnlineTimeAccumulatorBukkitListener implements Listener {
         final long now = System.currentTimeMillis();
         plugin.getScheduler().runAsyncOnce(() -> {
             try {
-                timeStorage.registerOnlineTimeStart(uuid, now);
+                timeStorage.startAccumulating(uuid, now);
             } catch (StorageException ex) {
                 plugin.getLogger().log(Level.WARNING, "could not start accumulating online time for player " + uuid, ex);
             }
@@ -64,7 +64,7 @@ public class OnlineTimeAccumulatorBukkitListener implements Listener {
         final long now = System.currentTimeMillis();
         plugin.getScheduler().runAsyncOnce(() -> {
             try {
-                timeStorage.saveOnlineTimeAfterDisconnect(uuid, now);
+                timeStorage.stopAccumulatingAndSaveOnlineTime(uuid, now);
             } catch (StorageException ex) {
                 plugin.getLogger().log(Level.WARNING, "error while stopping accumulation of online time for player " + uuid, ex);
             }

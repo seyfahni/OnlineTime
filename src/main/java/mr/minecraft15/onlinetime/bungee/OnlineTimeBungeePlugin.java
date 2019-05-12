@@ -48,7 +48,10 @@ import java.util.stream.Collectors;
 
 public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
 
-    private static final int CONFIG_VERSION = 1;
+    private static final int CONFIG_VERSION = 2;
+
+    private boolean loadSuccessful = false;
+    private String mode;
 
     private Configuration config;
 
@@ -69,12 +72,33 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
     private ScheduledTask flushCacheTask;
 
     @Override
-    public void onEnable() {
+    public void onLoad() {
         this.scheduler = new BungeeSchedulerAdapter(this, getProxy().getScheduler());
 
-        if (!(loadConfig() && loadStorage())) {
-            getLogger().log(Level.SEVERE, "Could not enable OnlineTime!");
+        boolean success = false;
+        try {
+            success = loadConfig() && loadStorage();
+        } finally {
+            loadSuccessful = success;
+        }
+    }
+
+    @Override
+    public void onEnable() {
+        if (!loadSuccessful) {
+            getLogger().severe("Could not enable OnlineTime!");
             return;
+        }
+
+        switch (mode) {
+            case "master":
+                getProxy().registerChannel("onlinetime:controller");
+                break;
+            case "standalone":
+                break;
+            default:
+                getLogger().severe("invalid mode: " + mode);
+                return;
         }
 
         PluginManager pluginManager = getProxy().getPluginManager();
@@ -162,6 +186,7 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
         this.messageFormat = new MineDown(config.getString("messageformat"));
         this.serverName = new MineDown(config.getString("servername", "this server")).toComponent();
         this.saveInterval = config.getLong("saveinterval", 30);
+        this.mode = config.getString("mode");
 
         Configuration langConfig = loadOrCreateYamlConfig("messages.yml");
         if (langConfig == null) {
@@ -192,6 +217,10 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
             case 0:
                 getLogger().warning("Unspecified config version. Creating config backup and resetting everything...");
                 return backupAndRecreateConfig();
+            case 1:
+                getLogger().warning("Migrating config from version 1...");
+                return backupAndKeepConfig()
+                        && addModeToConfiguration();
             default:
                 getLogger().severe("Illegal config version! Creating config backup and resetting everything...");
                 return backupAndRecreateConfig();
@@ -211,6 +240,33 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
             return config != null;
         } catch (IOException ex) {
             getLogger().log(Level.SEVERE, "Could not backup old configuration, aborting mirgation...", ex);
+            return false;
+        }
+    }
+
+    private boolean backupAndKeepConfig() {
+        Path configFilePath = new File(getDataFolder(), "config.yml").toPath();
+        Path messagesFilePath = new File(getDataFolder(), "messages.yml").toPath();
+        Path databaseFilePath = new File(getDataFolder(), "database.properties").toPath();
+        try {
+            Files.copy(configFilePath, configFilePath.resolveSibling("config.old.yml"));
+            Files.copy(messagesFilePath, messagesFilePath.resolveSibling("messages.old.yml"));
+            Files.copy(databaseFilePath, databaseFilePath.resolveSibling("database.old.properties"));
+            return true;
+        } catch (IOException ex) {
+            getLogger().log(Level.SEVERE, "Could not backup old configuration, aborting mirgation...", ex);
+            return false;
+        }
+    }
+
+    private boolean addModeToConfiguration() {
+        try {
+            File configFile = new File(getDataFolder(), "config.yml");
+            config.set("mode", "standalone");
+            ConfigurationProvider.getProvider(YamlConfiguration.class).save(config, configFile);
+            return true;
+        } catch (IOException ex) {
+            getLogger().log(Level.SEVERE, "could not save updated configuration config.yml", ex);
             return false;
         }
     }
