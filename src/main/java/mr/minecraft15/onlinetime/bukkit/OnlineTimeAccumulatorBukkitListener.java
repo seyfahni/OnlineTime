@@ -25,7 +25,7 @@
 package mr.minecraft15.onlinetime.bukkit;
 
 import mr.minecraft15.onlinetime.api.PluginProxy;
-import mr.minecraft15.onlinetime.common.AccumulatingOnlineTimeStorage;
+import mr.minecraft15.onlinetime.common.OnlineTimeAccumulator;
 import mr.minecraft15.onlinetime.common.StorageException;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -38,11 +38,11 @@ import java.util.logging.Level;
 public class OnlineTimeAccumulatorBukkitListener implements Listener {
 
     private final PluginProxy plugin;
-    private final AccumulatingOnlineTimeStorage timeStorage;
+    private final OnlineTimeAccumulator timeAccumulator;
 
-    public OnlineTimeAccumulatorBukkitListener(PluginProxy plugin, AccumulatingOnlineTimeStorage timeStorage) {
+    public OnlineTimeAccumulatorBukkitListener(PluginProxy plugin, OnlineTimeAccumulator timeAccumulator) {
         this.plugin = plugin;
-        this.timeStorage = timeStorage;
+        this.timeAccumulator = timeAccumulator;
     }
 
     @EventHandler
@@ -51,7 +51,7 @@ public class OnlineTimeAccumulatorBukkitListener implements Listener {
         final long now = System.currentTimeMillis();
         plugin.getScheduler().runAsyncOnce(() -> {
             try {
-                timeStorage.startAccumulating(uuid, now);
+                timeAccumulator.startAccumulating(uuid, now);
             } catch (StorageException ex) {
                 plugin.getLogger().log(Level.WARNING, "could not start accumulating online time for player " + uuid, ex);
             }
@@ -64,7 +64,7 @@ public class OnlineTimeAccumulatorBukkitListener implements Listener {
         final long now = System.currentTimeMillis();
         plugin.getScheduler().runAsyncOnce(() -> {
             try {
-                timeStorage.stopAccumulatingAndSaveOnlineTime(uuid, now);
+                timeAccumulator.stopAccumulatingAndSaveOnlineTime(uuid, now);
             } catch (StorageException ex) {
                 plugin.getLogger().log(Level.WARNING, "error while stopping accumulation of online time for player " + uuid, ex);
             }

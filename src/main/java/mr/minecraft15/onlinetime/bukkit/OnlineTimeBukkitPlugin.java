@@ -36,12 +36,13 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.plugin.messaging.PluginMessageRecipient;
+import org.bukkit.plugin.messaging.Messenger;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.logging.Level;
 
@@ -64,7 +65,8 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
     private long saveInterval;
     private String storageMethod;
 
-    private AccumulatingOnlineTimeStorage onlineTimeStorage;
+    private OnlineTimeStorage onlineTimeStorage;
+    private OnlineTimeAccumulator onlineTimeAccumulator;
     private PlayerNameStorage playerNameStorage;
 
     private BukkitTask flushCacheTask;
@@ -89,14 +91,30 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
             return;
         }
 
-        getCommand("onlinetime").setExecutor(new PluginCommandBukkitAdapter(
-                new OnlineTimeCommand(this, localization, onlineTimeStorage), this));
-        getCommand("onlinetimeadmin").setExecutor(new PluginCommandBukkitAdapter(
-                new OnlineTimeAdminCommand(this, localization, parser, onlineTimeStorage), this));
         PluginManager pluginManager = getServer().getPluginManager();
-        pluginManager.registerEvents(new PlayerNameBukkitListener(this, playerNameStorage), this);
-        pluginManager.registerEvents(new OnlineTimeAccumulatorBukkitListener(this, onlineTimeStorage), this);
-        flushCacheTask = getServer().getScheduler().runTaskTimerAsynchronously(this, this::flushOnlineTimeCache, saveInterval * 10, saveInterval * 20);
+        switch (mode) {
+            case "standalone":
+                getCommand("onlinetime").setExecutor(new PluginCommandBukkitAdapter(
+                        new OnlineTimeCommand(this, localization, onlineTimeStorage), this));
+                getCommand("onlinetimeadmin").setExecutor(new PluginCommandBukkitAdapter(
+                        new OnlineTimeAdminCommand(this, localization, parser, onlineTimeStorage), this));
+                pluginManager.registerEvents(new PlayerNameBukkitListener(this, playerNameStorage), this);
+                pluginManager.registerEvents(new OnlineTimeAccumulatorBukkitListener(this, onlineTimeAccumulator), this);
+                flushCacheTask = getServer().getScheduler().runTaskTimerAsynchronously(this, this::flushOnlineTimeCache, saveInterval * 10, saveInterval * 20);
+                break;
+            case "slave":
+                Messenger messenger = getServer().getMessenger();
+                BukkitSlavedOnlineTimeStorage slavedStorage = new BukkitSlavedOnlineTimeStorage(this, saveInterval * 20);
+                pluginManager.registerEvents(slavedStorage, this);
+                messenger.registerOutgoingPluginChannel(this, "onlinetime:storage");
+                messenger.registerIncomingPluginChannel(this, "onlinetime:storage", slavedStorage);
+                onlineTimeStorage = slavedStorage;
+                break;
+            default:
+                getLogger().log(Level.SEVERE, "Invalid mode: " + mode);
+                getServer().getPluginManager().disablePlugin(this);
+                return;
+        }
 
         registerPlaceholderApi();
     }
@@ -123,23 +141,21 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
             return false;
         }
 
+        this.messageFormat = new MineDown(config.getString("messageformat"));
+        this.serverName = new MineDown(config.getString("servername", "this server")).toComponent();
+        this.saveInterval = config.getLong("saveinterval", 30);
+
         switch (mode) {
             case "standalone":
-                return loadStandalone(config);
+                this.storageMethod = config.getString("storage", "yaml");
+                break;
             case "slave":
-                return loadSlave();
+                this.storageMethod = "none";
+                break;
             default:
                 getLogger().severe("invalid mode: " + mode);
                 return false;
         }
-
-    }
-
-    private boolean loadStandalone(FileConfiguration config) {
-        this.messageFormat = new MineDown(config.getString("messageformat"));
-        this.serverName = new MineDown(config.getString("servername", "this server")).toComponent();
-        this.saveInterval = config.getLong("saveinterval", 30);
-        this.storageMethod = config.getString("storage", "yaml");
 
         File translationFile = new File(getDataFolder(), "messages.yml");
         if (!translationFile.exists()) {
@@ -168,10 +184,6 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
         return true;
     }
 
-    private boolean loadSlave() {
-        return true;
-    }
-
     private boolean migrateConfig(int currentConfigVersion) {
         switch (currentConfigVersion) {
             case 0:
@@ -192,9 +204,9 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
         Path messagesFilePath = new File(getDataFolder(), "messages.yml").toPath();
         Path databaseFilePath = new File(getDataFolder(), "database.properties").toPath();
         try {
-            Files.move(configFilePath, configFilePath.resolveSibling("config.old.yml"));
-            Files.move(messagesFilePath, messagesFilePath.resolveSibling("messages.old.yml"));
-            Files.move(databaseFilePath, databaseFilePath.resolveSibling("database.old.properties"));
+            Files.move(configFilePath, configFilePath.resolveSibling("config.old.yml"), StandardCopyOption.REPLACE_EXISTING);
+            Files.move(messagesFilePath, messagesFilePath.resolveSibling("messages.old.yml"), StandardCopyOption.REPLACE_EXISTING);
+            Files.move(databaseFilePath, databaseFilePath.resolveSibling("database.old.properties"), StandardCopyOption.REPLACE_EXISTING);
 
             saveDefaultConfig();
             reloadConfig();
@@ -210,9 +222,9 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
         Path messagesFilePath = new File(getDataFolder(), "messages.yml").toPath();
         Path databaseFilePath = new File(getDataFolder(), "database.properties").toPath();
         try {
-            Files.copy(configFilePath, configFilePath.resolveSibling("config.old.yml"));
-            Files.copy(messagesFilePath, messagesFilePath.resolveSibling("messages.old.yml"));
-            Files.copy(databaseFilePath, databaseFilePath.resolveSibling("database.old.properties"));
+            Files.copy(configFilePath, configFilePath.resolveSibling("config.old.yml"), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(messagesFilePath, messagesFilePath.resolveSibling("messages.old.yml"), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(databaseFilePath, databaseFilePath.resolveSibling("database.old.properties"), StandardCopyOption.REPLACE_EXISTING);
             return true;
         } catch (IOException ex) {
             getLogger().log(Level.SEVERE, "Could not backup old configuration, aborting mirgation...", ex);
@@ -223,6 +235,7 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
     private boolean addModeToConfiguration() {
         FileConfiguration config = getConfig();
         config.set("mode", "standalone");
+        config.set("configversion", 2);
         saveConfig();
         return true;
     }
@@ -271,6 +284,8 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
                 case "database":
                     loadMysqlStorage();
                     return true;
+                case "none":
+                    return true;
                 default:
                     getLogger().severe("illegal storage method " + storageMethod);
                     return false;
@@ -283,7 +298,9 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
 
     private void loadYamlStorage() throws StorageException {
         this.playerNameStorage = new FilePlayerNameStorage(new BukkitYamlFileStorageProvider(this, "names.yml"));
-        this.onlineTimeStorage = new AccumulatingOnlineTimeStorage(new FileOnlineTimeStorage(new BukkitYamlFileStorageProvider(this, "time.yml")));
+        AccumulatingOnlineTimeStorage accumulatingTimeStorage = new AccumulatingOnlineTimeStorage(new FileOnlineTimeStorage(new BukkitYamlFileStorageProvider(this, "time.yml")));
+        this.onlineTimeStorage = accumulatingTimeStorage;
+        this.onlineTimeAccumulator = accumulatingTimeStorage;
     }
 
     private void loadMysqlStorage() throws StorageException {
@@ -302,12 +319,14 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
         }
         DatabaseStorage storage = new DatabaseStorage(properties);
         this.playerNameStorage = storage;
-        this.onlineTimeStorage = new AccumulatingOnlineTimeStorage(storage);
+        AccumulatingOnlineTimeStorage accumulatingTimeStorage = new AccumulatingOnlineTimeStorage(storage);
+        this.onlineTimeStorage = accumulatingTimeStorage;
+        this.onlineTimeAccumulator = accumulatingTimeStorage;
     }
 
     private void flushOnlineTimeCache() {
         try {
-            onlineTimeStorage.flushOnlineTimeCache();
+            onlineTimeAccumulator.flushOnlineTimeCache();
         } catch (StorageException ex) {
             getLogger().log(Level.SEVERE, "could not flush online time cache", ex);
         }
@@ -322,10 +341,17 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
 
     @Override
     public void onDisable() {
-        if (onlineTimeStorage != null) {
+        if (onlineTimeAccumulator != null) {
             try {
                 flushCacheTask.cancel();
                 flushOnlineTimeCache();
+                onlineTimeAccumulator.close();
+            } catch (StorageException ex) {
+                getLogger().log(Level.SEVERE, "error while closing online time accumulator", ex);
+            }
+        }
+        if (onlineTimeStorage != null) {
+            try {
                 onlineTimeStorage.close();
             } catch (StorageException ex) {
                 getLogger().log(Level.SEVERE, "error while closing online time storage", ex);
@@ -417,32 +443,5 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
     @Override
     public Localization getLocalizationFor(PlayerData player) {
         return getDefaultLocalization();
-    }
-
-    public void sendPluginMessage(PluginMessageRecipient target, String channel, Object... message) {
-        try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-             DataOutputStream out = new DataOutputStream(byteOut)) {
-            for (Object part : message) {
-                if (part instanceof String) {
-                    out.writeUTF((String) part);
-                } else if (part instanceof Integer) {
-                    out.writeInt((Integer) part);
-                } else if (part instanceof Long) {
-                    out.writeLong((Long) part);
-                } else if (part instanceof Float) {
-                    out.writeFloat((Float) part);
-                } else if (part instanceof Double) {
-                    out.writeDouble((Double) part);
-                } else if (part instanceof Boolean) {
-                    out.writeBoolean((Boolean) part);
-                } else {
-                    throw new IOException("invalid data " + part.toString());
-                }
-            }
-            target.sendPluginMessage(this, channel, byteOut.toByteArray());
-        } catch (IOException ex) {
-            getLogger().log(Level.SEVERE, null, ex);
-        }
-
     }
 }

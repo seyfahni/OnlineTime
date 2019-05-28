@@ -28,7 +28,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-public class AccumulatingOnlineTimeStorage implements OnlineTimeStorage {
+public class AccumulatingOnlineTimeStorage implements OnlineTimeStorage, OnlineTimeAccumulator {
 
     private final OnlineTimeStorage storage;
     private final ConcurrentMap<UUID, Long> onlineSince = new ConcurrentHashMap<>();
@@ -70,6 +70,7 @@ public class AccumulatingOnlineTimeStorage implements OnlineTimeStorage {
         this.storage.addOnlineTimes(directWrite);
     }
 
+    @Override
     public void startAccumulating(UUID uuid, long when) throws StorageException {
         Long from = onlineSince.put(uuid, when);
         if (null != from) {
@@ -78,6 +79,7 @@ public class AccumulatingOnlineTimeStorage implements OnlineTimeStorage {
         }
     }
 
+    @Override
     public void stopAccumulatingAndSaveOnlineTime(UUID uuid, long when) throws StorageException {
         if (onlineSince.containsKey(uuid)) {
             Long from = onlineSince.remove(uuid);
@@ -88,6 +90,7 @@ public class AccumulatingOnlineTimeStorage implements OnlineTimeStorage {
         }
     }
 
+    @Override
     public void flushOnlineTimeCache() throws StorageException {
         if (onlineSince.isEmpty()) {
             return;

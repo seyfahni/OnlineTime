@@ -41,6 +41,7 @@ import net.md_5.bungee.config.YamlConfiguration;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -90,9 +91,12 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
             return;
         }
 
+        PluginManager pluginManager = getProxy().getPluginManager();
         switch (mode) {
             case "master":
-                getProxy().registerChannel("onlinetime:controller");
+                getProxy().registerChannel("onlinetime:storage");
+                pluginManager.registerListener(this, new OnlineTimeStorageRequestListener(this, onlineTimeStorage));
+                getLogger().info("Enabled OnlineTimeStorageRequestListener.");
                 break;
             case "standalone":
                 break;
@@ -101,7 +105,6 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
                 return;
         }
 
-        PluginManager pluginManager = getProxy().getPluginManager();
         pluginManager.registerCommand(this, new PluginCommandBungeeAdapter(
                 new OnlineTimeCommand(this, localization, onlineTimeStorage),
                 "onlinetime", "onlinet", "otime", "ot"));
@@ -232,9 +235,9 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
         Path messagesFilePath = new File(getDataFolder(), "messages.yml").toPath();
         Path databaseFilePath = new File(getDataFolder(), "database.properties").toPath();
         try {
-            Files.move(configFilePath, configFilePath.resolveSibling("config.old.yml"));
-            Files.move(messagesFilePath, messagesFilePath.resolveSibling("messages.old.yml"));
-            Files.move(databaseFilePath, databaseFilePath.resolveSibling("database.old.properties"));
+            Files.move(configFilePath, configFilePath.resolveSibling("config.old.yml"), StandardCopyOption.REPLACE_EXISTING);
+            Files.move(messagesFilePath, messagesFilePath.resolveSibling("messages.old.yml"), StandardCopyOption.REPLACE_EXISTING);
+            Files.move(databaseFilePath, databaseFilePath.resolveSibling("database.old.properties"), StandardCopyOption.REPLACE_EXISTING);
 
             this.config = loadOrCreateYamlConfig("config.yml");
             return config != null;
@@ -249,9 +252,9 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
         Path messagesFilePath = new File(getDataFolder(), "messages.yml").toPath();
         Path databaseFilePath = new File(getDataFolder(), "database.properties").toPath();
         try {
-            Files.copy(configFilePath, configFilePath.resolveSibling("config.old.yml"));
-            Files.copy(messagesFilePath, messagesFilePath.resolveSibling("messages.old.yml"));
-            Files.copy(databaseFilePath, databaseFilePath.resolveSibling("database.old.properties"));
+            Files.copy(configFilePath, configFilePath.resolveSibling("config.old.yml"), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(messagesFilePath, messagesFilePath.resolveSibling("messages.old.yml"), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(databaseFilePath, databaseFilePath.resolveSibling("database.old.properties"), StandardCopyOption.REPLACE_EXISTING);
             return true;
         } catch (IOException ex) {
             getLogger().log(Level.SEVERE, "Could not backup old configuration, aborting mirgation...", ex);
@@ -263,6 +266,7 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
         try {
             File configFile = new File(getDataFolder(), "config.yml");
             config.set("mode", "standalone");
+            config.set("configversion", 2);
             ConfigurationProvider.getProvider(YamlConfiguration.class).save(config, configFile);
             return true;
         } catch (IOException ex) {
