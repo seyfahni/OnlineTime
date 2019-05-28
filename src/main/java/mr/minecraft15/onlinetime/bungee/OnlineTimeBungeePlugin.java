@@ -41,6 +41,7 @@ import net.md_5.bungee.config.YamlConfiguration;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -48,7 +49,10 @@ import java.util.stream.Collectors;
 
 public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
 
-    private static final int CONFIG_VERSION = 1;
+    private static final int CONFIG_VERSION = 2;
+
+    private boolean loadSuccessful = false;
+    private String mode;
 
     private Configuration config;
 
@@ -69,15 +73,38 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
     private ScheduledTask flushCacheTask;
 
     @Override
-    public void onEnable() {
+    public void onLoad() {
         this.scheduler = new BungeeSchedulerAdapter(this, getProxy().getScheduler());
 
-        if (!(loadConfig() && loadStorage())) {
-            getLogger().log(Level.SEVERE, "Could not enable OnlineTime!");
+        boolean success = false;
+        try {
+            success = loadConfig() && loadStorage();
+        } finally {
+            loadSuccessful = success;
+        }
+    }
+
+    @Override
+    public void onEnable() {
+        if (!loadSuccessful) {
+            getLogger().severe("Could not enable OnlineTime!");
             return;
         }
 
         PluginManager pluginManager = getProxy().getPluginManager();
+        switch (mode) {
+            case "master":
+                getProxy().registerChannel("onlinetime:storage");
+                pluginManager.registerListener(this, new OnlineTimeStorageRequestListener(this, onlineTimeStorage));
+                getLogger().info("Enabled OnlineTimeStorageRequestListener.");
+                break;
+            case "standalone":
+                break;
+            default:
+                getLogger().severe("invalid mode: " + mode);
+                return;
+        }
+
         pluginManager.registerCommand(this, new PluginCommandBungeeAdapter(
                 new OnlineTimeCommand(this, localization, onlineTimeStorage),
                 "onlinetime", "onlinet", "otime", "ot"));
@@ -162,6 +189,7 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
         this.messageFormat = new MineDown(config.getString("messageformat"));
         this.serverName = new MineDown(config.getString("servername", "this server")).toComponent();
         this.saveInterval = config.getLong("saveinterval", 30);
+        this.mode = config.getString("mode");
 
         Configuration langConfig = loadOrCreateYamlConfig("messages.yml");
         if (langConfig == null) {
@@ -192,6 +220,10 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
             case 0:
                 getLogger().warning("Unspecified config version. Creating config backup and resetting everything...");
                 return backupAndRecreateConfig();
+            case 1:
+                getLogger().warning("Migrating config from version 1...");
+                return backupAndKeepConfig()
+                        && addModeToConfiguration();
             default:
                 getLogger().severe("Illegal config version! Creating config backup and resetting everything...");
                 return backupAndRecreateConfig();
@@ -203,14 +235,42 @@ public class OnlineTimeBungeePlugin extends Plugin implements PluginProxy {
         Path messagesFilePath = new File(getDataFolder(), "messages.yml").toPath();
         Path databaseFilePath = new File(getDataFolder(), "database.properties").toPath();
         try {
-            Files.move(configFilePath, configFilePath.resolveSibling("config.old.yml"));
-            Files.move(messagesFilePath, messagesFilePath.resolveSibling("messages.old.yml"));
-            Files.move(databaseFilePath, databaseFilePath.resolveSibling("database.old.properties"));
+            Files.move(configFilePath, configFilePath.resolveSibling("config.old.yml"), StandardCopyOption.REPLACE_EXISTING);
+            Files.move(messagesFilePath, messagesFilePath.resolveSibling("messages.old.yml"), StandardCopyOption.REPLACE_EXISTING);
+            Files.move(databaseFilePath, databaseFilePath.resolveSibling("database.old.properties"), StandardCopyOption.REPLACE_EXISTING);
 
             this.config = loadOrCreateYamlConfig("config.yml");
             return config != null;
         } catch (IOException ex) {
             getLogger().log(Level.SEVERE, "Could not backup old configuration, aborting mirgation...", ex);
+            return false;
+        }
+    }
+
+    private boolean backupAndKeepConfig() {
+        Path configFilePath = new File(getDataFolder(), "config.yml").toPath();
+        Path messagesFilePath = new File(getDataFolder(), "messages.yml").toPath();
+        Path databaseFilePath = new File(getDataFolder(), "database.properties").toPath();
+        try {
+            Files.copy(configFilePath, configFilePath.resolveSibling("config.old.yml"), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(messagesFilePath, messagesFilePath.resolveSibling("messages.old.yml"), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(databaseFilePath, databaseFilePath.resolveSibling("database.old.properties"), StandardCopyOption.REPLACE_EXISTING);
+            return true;
+        } catch (IOException ex) {
+            getLogger().log(Level.SEVERE, "Could not backup old configuration, aborting mirgation...", ex);
+            return false;
+        }
+    }
+
+    private boolean addModeToConfiguration() {
+        try {
+            File configFile = new File(getDataFolder(), "config.yml");
+            config.set("mode", "standalone");
+            config.set("configversion", 2);
+            ConfigurationProvider.getProvider(YamlConfiguration.class).save(config, configFile);
+            return true;
+        } catch (IOException ex) {
+            getLogger().log(Level.SEVERE, "could not save updated configuration config.yml", ex);
             return false;
         }
     }

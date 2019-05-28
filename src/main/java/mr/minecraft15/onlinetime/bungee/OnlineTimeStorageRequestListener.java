@@ -26,64 +26,37 @@ package mr.minecraft15.onlinetime.bungee;
 
 import mr.minecraft15.onlinetime.api.PlayerData;
 import mr.minecraft15.onlinetime.api.PluginProxy;
-import mr.minecraft15.onlinetime.common.OnlineTimeAccumulator;
+import mr.minecraft15.onlinetime.common.OnlineTimeStorage;
 import mr.minecraft15.onlinetime.common.StorageException;
 import net.md_5.bungee.api.connection.Connection;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
-import net.md_5.bungee.api.event.PlayerDisconnectEvent;
+import net.md_5.bungee.api.connection.Server;
 import net.md_5.bungee.api.event.PluginMessageEvent;
-import net.md_5.bungee.api.event.PostLoginEvent;
 import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.event.EventHandler;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.util.UUID;
+import java.io.*;
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.logging.Level;
 
-public class OnlineTimeAccumulatorBungeeListener implements Listener {
+public class OnlineTimeStorageRequestListener implements Listener {
 
     private final PluginProxy plugin;
-    private final OnlineTimeAccumulator timeAccumulator;
+    private final OnlineTimeStorage timeStorage;
 
-    public OnlineTimeAccumulatorBungeeListener(PluginProxy plugin, OnlineTimeAccumulator timeAccumulator) {
-        this.plugin = plugin;
-        this.timeAccumulator = timeAccumulator;
-    }
-
-    @EventHandler
-    public void onPlayerPostLogin(PostLoginEvent event) {
-        final UUID uuid = event.getPlayer().getUniqueId();
-        final long now = System.currentTimeMillis();
-        plugin.getScheduler().runAsyncOnce(() -> {
-            try {
-                timeAccumulator.startAccumulating(uuid, now);
-            } catch (StorageException ex) {
-                plugin.getLogger().log(Level.WARNING, "could not start accumulating online time for player " + uuid, ex);
-            }
-        });
-    }
-
-    @EventHandler
-    public void onPlayerDisconnect(PlayerDisconnectEvent event) {
-        final UUID uuid = event.getPlayer().getUniqueId();
-        final long now = System.currentTimeMillis();
-        plugin.getScheduler().runAsyncOnce(() -> {
-            try {
-                timeAccumulator.stopAccumulatingAndSaveOnlineTime(uuid, now);
-            } catch (StorageException ex) {
-                plugin.getLogger().log(Level.WARNING, "error while stopping accumulation of online time for player " + uuid, ex);
-            }
-        });
+    public OnlineTimeStorageRequestListener(PluginProxy plugin, OnlineTimeStorage timeStorage) {
+        this.plugin = Objects.requireNonNull(plugin);
+        this.timeStorage = Objects.requireNonNull(timeStorage);
     }
 
     @EventHandler
     public void onPluginMessage(PluginMessageEvent event) {
-        if ("onlinetime:controller".equals(event.getTag())) {
+        if ("onlinetime:storage".equals(event.getTag())) {
             Connection receiver = event.getReceiver();
+            Connection sender = event.getSender();
             if (!(receiver instanceof ProxiedPlayer)) {
-                Connection sender = event.getSender();
+                event.setCancelled(true);
                 if (sender instanceof ProxiedPlayer) {
                     ProxiedPlayer sendingPlayer = (ProxiedPlayer) sender;
                     plugin.getLogger().warning("Player " + sendingPlayer.getName() + " (" + sendingPlayer.getUniqueId() + ") tried to interact with OnlineTime via custom packages! This is probably an attack!");
@@ -91,6 +64,11 @@ public class OnlineTimeAccumulatorBungeeListener implements Listener {
                 return;
             }
             ProxiedPlayer target = (ProxiedPlayer) receiver;
+            if (!(sender instanceof Server)) {
+                event.setCancelled(true);
+                return;
+            }
+            Server source = (Server) sender;
 
             final byte[] data = event.getData();
             final PlayerData player = new PlayerData(target.getUniqueId(), target.getName());
@@ -98,13 +76,13 @@ public class OnlineTimeAccumulatorBungeeListener implements Listener {
                 try (ByteArrayInputStream byteInput = new ByteArrayInputStream(data);
                      DataInputStream in = new DataInputStream(byteInput)) {
                     switch (in.readUTF()) {
-                        case "start":
-                            long startTime = in.readLong();
-                            timeAccumulator.startAccumulating(player.getUuid(), startTime);
+                        case "get":
+                            long onlineTime = timeStorage.getOnlineTime(player.getUuid()).orElse(0);
+                            sendPluginMessage(source, "onlinetime:storage", player.getUuid().toString(), onlineTime);
                             break;
-                        case "stop":
-                            long stopTime = in.readLong();
-                            timeAccumulator.stopAccumulatingAndSaveOnlineTime(player.getUuid(), stopTime);
+                        case "modify":
+                            long modifyTime = in.readLong();
+                            timeStorage.addOnlineTime(player.getUuid(), modifyTime);
                             break;
                         default:
                             throw new IOException("invalid data");
@@ -115,6 +93,33 @@ public class OnlineTimeAccumulatorBungeeListener implements Listener {
                     plugin.getLogger().log(Level.WARNING, "invalid plugin message", ex);
                 }
             });
+        }
+    }
+
+
+    public void sendPluginMessage(Server target, String channel, Object... message) {
+        try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+             DataOutputStream out = new DataOutputStream(byteOut)) {
+            for (Object part : message) {
+                if (part instanceof String) {
+                    out.writeUTF((String) part);
+                } else if (part instanceof Integer) {
+                    out.writeInt((Integer) part);
+                } else if (part instanceof Long) {
+                    out.writeLong((Long) part);
+                } else if (part instanceof Float) {
+                    out.writeFloat((Float) part);
+                } else if (part instanceof Double) {
+                    out.writeDouble((Double) part);
+                } else if (part instanceof Boolean) {
+                    out.writeBoolean((Boolean) part);
+                } else {
+                    throw new IOException("invalid data " + part.toString());
+                }
+            }
+            target.sendData(channel, byteOut.toByteArray());
+        } catch (IOException ex) {
+            plugin.getLogger().log(Level.SEVERE, null, ex);
         }
     }
 }

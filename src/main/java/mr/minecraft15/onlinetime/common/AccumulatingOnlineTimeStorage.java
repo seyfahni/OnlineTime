@@ -28,7 +28,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-public class AccumulatingOnlineTimeStorage implements OnlineTimeStorage {
+public class AccumulatingOnlineTimeStorage implements OnlineTimeStorage, OnlineTimeAccumulator {
 
     private final OnlineTimeStorage storage;
     private final ConcurrentMap<UUID, Long> onlineSince = new ConcurrentHashMap<>();
@@ -70,19 +70,27 @@ public class AccumulatingOnlineTimeStorage implements OnlineTimeStorage {
         this.storage.addOnlineTimes(directWrite);
     }
 
-    public void registerOnlineTimeStart(UUID uuid, long when) throws StorageException {
-        onlineSince.put(uuid, when);
-    }
-
-    public void saveOnlineTimeAfterDisconnect(UUID uuid, long when) throws StorageException {
-        if (onlineSince.containsKey(uuid)) {
-            Long from = onlineSince.remove(uuid);
-            if (from == null) return; // concurrent change
-            long currentOnlineTime = (when - from) / 1000;
-            storage.addOnlineTime(uuid, currentOnlineTime);
+    @Override
+    public void startAccumulating(UUID uuid, long when) throws StorageException {
+        Long from = onlineSince.put(uuid, when);
+        if (null != from) {
+            long previousOnlineTime = (when - from) / 1000;
+            storage.addOnlineTime(uuid, previousOnlineTime);
         }
     }
 
+    @Override
+    public void stopAccumulatingAndSaveOnlineTime(UUID uuid, long when) throws StorageException {
+        if (onlineSince.containsKey(uuid)) {
+            Long from = onlineSince.remove(uuid);
+            if (null != from) {
+                long currentOnlineTime = (when - from) / 1000;
+                storage.addOnlineTime(uuid, currentOnlineTime);
+            } // else already stopped concurrently
+        }
+    }
+
+    @Override
     public void flushOnlineTimeCache() throws StorageException {
         if (onlineSince.isEmpty()) {
             return;
