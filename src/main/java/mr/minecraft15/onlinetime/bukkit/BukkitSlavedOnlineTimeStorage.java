@@ -28,6 +28,7 @@ import mr.minecraft15.onlinetime.common.OnlineTimeStorage;
 import mr.minecraft15.onlinetime.common.UuidUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -127,12 +128,12 @@ public class BukkitSlavedOnlineTimeStorage implements OnlineTimeStorage, PluginM
         }
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onPlayerJoin(PlayerJoinEvent event) {
         trackedPlayers.put(event.getPlayer().getUniqueId(), 0L);
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
         trackedPlayers.remove(event.getPlayer().getUniqueId());
     }

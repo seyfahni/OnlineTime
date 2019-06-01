@@ -28,6 +28,7 @@ import mr.minecraft15.onlinetime.api.PluginProxy;
 import mr.minecraft15.onlinetime.common.OnlineTimeAccumulator;
 import mr.minecraft15.onlinetime.common.StorageException;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -45,7 +46,7 @@ public class OnlineTimeAccumulatorBukkitListener implements Listener {
         this.timeAccumulator = timeAccumulator;
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onPlayerJoin(PlayerJoinEvent event) {
         final UUID uuid = event.getPlayer().getUniqueId();
         final long now = System.currentTimeMillis();
@@ -58,7 +59,7 @@ public class OnlineTimeAccumulatorBukkitListener implements Listener {
         });
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
         final UUID uuid = event.getPlayer().getUniqueId();
         final long now = System.currentTimeMillis();

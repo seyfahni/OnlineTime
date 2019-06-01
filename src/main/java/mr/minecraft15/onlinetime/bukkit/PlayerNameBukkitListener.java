@@ -29,6 +29,7 @@ import mr.minecraft15.onlinetime.common.PlayerNameStorage;
 import mr.minecraft15.onlinetime.common.StorageException;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
@@ -45,7 +46,7 @@ public class PlayerNameBukkitListener implements Listener {
         this.nameStorage = nameStorage;
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onPlayerLogin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         final UUID uuid = player.getUniqueId();
