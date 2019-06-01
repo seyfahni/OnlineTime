@@ -39,7 +39,7 @@ public class FilePlayerNameStorage implements PlayerNameStorage {
     @Override
     public Optional<UUID> getUuid(String playerName) throws StorageException {
         Objects.requireNonNull(playerName);
-        Object uuid = storageProvider.read(playerName);
+        Object uuid = storageProvider.read(playerName.toLowerCase(Locale.ROOT));
         if (null == uuid) {
             return Optional.empty();
         } else {
@@ -60,7 +60,7 @@ public class FilePlayerNameStorage implements PlayerNameStorage {
     public void setEntry(UUID uuid, String name) throws StorageException {
         Objects.requireNonNull(uuid);
         Objects.requireNonNull(name);
-        storageProvider.write(name, uuid.toString());
+        storageProvider.write(name.toLowerCase(Locale.ROOT), uuid.toString());
     }
 
     @Override
@@ -68,7 +68,7 @@ public class FilePlayerNameStorage implements PlayerNameStorage {
         Objects.requireNonNull(entries);
         Map<String, String> data = new HashMap<>();
         for (Map.Entry<UUID, String> entry : entries.entrySet()) {
-            String previous = data.put(entry.getValue(), entry.getKey().toString());
+            String previous = data.put(entry.getValue().toLowerCase(Locale.ROOT), entry.getKey().toString());
             if (previous != null) {
                 throw new StorageException("duplicate name: " + entry.getValue());
             }

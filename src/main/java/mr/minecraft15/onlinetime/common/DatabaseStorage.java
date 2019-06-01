@@ -70,7 +70,7 @@ public class DatabaseStorage implements PlayerNameStorage, OnlineTimeStorage {
         try {
             checkClosed();
             try (Connection connection = dataSource.getConnection()){
-                return getUuid(connection, name);
+                return getUuid(connection, name.toLowerCase(Locale.ROOT));
             }
         } catch (SQLException ex) {
             throw new StorageException(ex);
@@ -231,7 +231,7 @@ public class DatabaseStorage implements PlayerNameStorage, OnlineTimeStorage {
         try {
             checkClosed();
             try (Connection connection = dataSource.getConnection()) {
-                setEntry(connection, uuid, name);
+                setEntry(connection, uuid, name.toLowerCase(Locale.ROOT));
             }
         } catch (SQLException ex) {
             throw new StorageException(ex);
@@ -280,7 +280,7 @@ public class DatabaseStorage implements PlayerNameStorage, OnlineTimeStorage {
              PreparedStatement insertOrUpdateEntryStmnt = connection.prepareStatement(INSERT_OR_UPDATE_ENTRY_SQL)) {
             for (Map.Entry<UUID, String> entry : entries.entrySet()) {
                 UUID uuid = entry.getKey();
-                String name = entry.getValue();
+                String name = entry.getValue().toLowerCase(Locale.ROOT);
                 Optional<UUID> oldNameHolder = getUuid(connection, name);
                 if (oldNameHolder.filter(oldUuid -> !oldUuid.equals(uuid)).isPresent()) { // name not unique ? update on duplicate uuid
                     unsetTakenNameStmnt.setBytes(1, UuidUtil.toBytes(oldNameHolder.get()));
