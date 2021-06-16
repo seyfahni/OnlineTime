@@ -9,3 +9,5 @@ updates:
     ignore:
       - dependency-name: '*'
         update-types: ['version-update:semver-major']
+      - dependency-name: 'com.destroystokyo.paper:paper-api'
+        update-types: ['version-update:semver-minor']
