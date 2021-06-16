@@ -2,9 +2,10 @@
 
 version: 2
 updates:
-  - package-ecosystem: "maven"
-    directory: "/"
+  - package-ecosystem: 'maven'
+    directory: '/'
     schedule:
-      interval: "weekly"
+      interval: 'weekly'
     ignore:
-      - update-types: ["version-update:semver-major"]
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
