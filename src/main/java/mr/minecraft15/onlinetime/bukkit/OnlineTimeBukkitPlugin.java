@@ -36,6 +36,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
+import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.Messenger;
 import org.bukkit.scheduler.BukkitTask;
@@ -117,6 +118,7 @@ public class OnlineTimeBukkitPlugin extends JavaPlugin implements PluginProxy {
                 return;
         }
 
+        getServer().getServicesManager().register(OnlineTimeStorage.class,onlineTimeStorage,this, ServicePriority.Lowest);
         registerPlaceholderApi();
     }
 
