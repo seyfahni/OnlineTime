@@ -24,7 +24,7 @@
 
 package mr.minecraft15.onlinetime.bukkit;
 
-import mr.minecraft15.onlinetime.common.OnlineTimeStorage;
+import mr.minecraft15.onlinetime.api.OnlineTimeStorage;
 import mr.minecraft15.onlinetime.common.UuidUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;

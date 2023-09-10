@@ -26,6 +26,7 @@ package mr.minecraft15.onlinetime.common;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import mr.minecraft15.onlinetime.api.OnlineTimeStorage;
 
 import java.sql.*;
 import java.util.*;

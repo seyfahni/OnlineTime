@@ -22,7 +22,9 @@
  * SOFTWARE.
  */
 
-package mr.minecraft15.onlinetime.common;
+package mr.minecraft15.onlinetime.api;
+
+import mr.minecraft15.onlinetime.common.StorageException;
 
 import java.util.Map;
 import java.util.OptionalLong;

@@ -24,6 +24,8 @@
 
 package mr.minecraft15.onlinetime.common;
 
+import mr.minecraft15.onlinetime.api.OnlineTimeStorage;
+
 import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalLong;
