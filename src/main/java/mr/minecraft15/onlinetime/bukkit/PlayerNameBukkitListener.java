@@ -26,7 +26,7 @@ package mr.minecraft15.onlinetime.bukkit;
 
 import mr.minecraft15.onlinetime.api.PluginProxy;
 import mr.minecraft15.onlinetime.common.PlayerNameStorage;
-import mr.minecraft15.onlinetime.common.StorageException;
+import mr.minecraft15.onlinetime.api.StorageException;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;

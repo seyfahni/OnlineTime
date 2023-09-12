@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package mr.minecraft15.onlinetime.common;
+package mr.minecraft15.onlinetime.api;
 
 import java.util.Map;
 import java.util.OptionalLong;

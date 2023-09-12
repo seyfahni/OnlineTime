@@ -24,8 +24,6 @@
 
 package mr.minecraft15.onlinetime.api;
 
-import mr.minecraft15.onlinetime.common.StorageException;
-
 import java.util.Map;
 import java.util.Set;
 
