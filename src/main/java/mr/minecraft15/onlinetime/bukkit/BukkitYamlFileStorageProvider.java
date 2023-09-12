@@ -25,7 +25,7 @@
 package mr.minecraft15.onlinetime.bukkit;
 
 import mr.minecraft15.onlinetime.api.FileStorageProvider;
-import mr.minecraft15.onlinetime.common.StorageException;
+import mr.minecraft15.onlinetime.api.StorageException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 

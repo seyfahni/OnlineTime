@@ -25,6 +25,7 @@
 package mr.minecraft15.onlinetime.common;
 
 import mr.minecraft15.onlinetime.api.OnlineTimeStorage;
+import mr.minecraft15.onlinetime.api.StorageException;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;

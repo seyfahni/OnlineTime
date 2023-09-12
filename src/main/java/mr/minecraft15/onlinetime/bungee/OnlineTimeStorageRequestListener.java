@@ -27,7 +27,7 @@ package mr.minecraft15.onlinetime.bungee;
 import mr.minecraft15.onlinetime.api.PlayerData;
 import mr.minecraft15.onlinetime.api.PluginProxy;
 import mr.minecraft15.onlinetime.api.OnlineTimeStorage;
-import mr.minecraft15.onlinetime.common.StorageException;
+import mr.minecraft15.onlinetime.api.StorageException;
 import net.md_5.bungee.api.connection.Connection;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.connection.Server;

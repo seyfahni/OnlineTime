@@ -24,6 +24,8 @@
 
 package mr.minecraft15.onlinetime.common;
 
+import mr.minecraft15.onlinetime.api.StorageException;
+
 import java.util.UUID;
 
 public interface OnlineTimeAccumulator extends AutoCloseable {

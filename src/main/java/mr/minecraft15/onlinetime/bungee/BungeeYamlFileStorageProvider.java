@@ -25,7 +25,7 @@
 package mr.minecraft15.onlinetime.bungee;
 
 import mr.minecraft15.onlinetime.api.FileStorageProvider;
-import mr.minecraft15.onlinetime.common.StorageException;
+import mr.minecraft15.onlinetime.api.StorageException;
 import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.config.Configuration;
 import net.md_5.bungee.config.ConfigurationProvider;
