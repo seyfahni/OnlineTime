@@ -70,7 +70,7 @@ public interface PlayerNameStorage extends AutoCloseable {
      * <br/>
      * Duplicate uuids or name may be handled differently depending on implementation, but always written.
      *
-     * @param names names of players identified by their uuid
+     * @param entries names of players identified by their uuid
      * @throws StorageException wrapping exceptions of the underlying storage implementation
      */
     void setEntries(Map<UUID, String> entries) throws StorageException;
