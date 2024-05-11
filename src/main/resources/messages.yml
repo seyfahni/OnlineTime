@@ -195,3 +195,72 @@ ja:
         reset:
           usage: '&gray&[/onlinetimeadmin reset [player]](dark_aqua) でプレイヤーのプレイ時間をリセットできます。'
           success: '&gray&プレイヤー [%player%](dark_aqua) のプレイ時間はリセットされました。'
+zh_cn:
+  unit:
+    second:
+      singular: '秒'
+      plural: '秒'
+      identifier:
+        - 's'
+        - '秒'
+    minute:
+      singular: '分钟'
+      plural: '分钟'
+      identifier:
+        - 'min'
+        - '分钟'
+    hour:
+      singular: '小时'
+      plural: '小时'
+      identifier:
+        - 'h'
+        - '小时'
+    day:
+      singular: '天'
+      plural: '天'
+      identifier:
+        - 'd'
+        - '天'
+    week:
+      singular: '周'
+      plural: '周'
+      identifier:
+        - 'w'
+        - '周'
+    month:
+      singular: '月'
+      plural: '月'
+      identifier:
+        - 'm'
+        - '月'
+    year:
+      singular: '年'
+      plural: '年'
+      identifier:
+        - 'y'
+        - 'yhr'
+        - '年'
+  message:
+    nopermission: '&gray&你没有权限去做这些!'
+    command:
+      onlinetime:
+        usage: '&gray&使用 [/onlinetime [玩家名]](dark_aqua) 去查看一个玩家的在线时间'
+        notfound: '&gray&玩家 [%player%](dark_aqua) 还未有玩过 %server%'
+        timeseen:
+          self: '&gray&你已在 %server% 游玩了 [%time%](dark_aqua)'
+          other: '&gray&玩家 [%player%](dark_aqua) 已经在 %server% 游玩了 [%time%](dark_aqua)'
+      onlinetimeadmin:
+        usage: '&gray&使用 [/onlinetimeadmin (set|mod|reset) [玩家名] [时间]](dark_aqua) 去编辑一个玩家的在线时间'
+        missinguuid: '&gray&未知的玩家 [%player%](dark_aqua)'
+        nottime: '&gray&给出的时间参数 [%argument%](dark_aqua) 是无效的'
+        set:
+          usage: '&gray&使用 [/onlinetimeadmin set [player] [time]](dark_aqua) 去设置一个玩家的在线时间'
+          success: '&gray&[%player%](dark_aqua) 的在线时间成功设置为 [%time%](dark_aqua).'
+          negativetime: '&gray&给出的时间 [%time%](dark_aqua) 是负数，但该值必须大于0'
+        modify:
+          usage: '&gray&使用 [/onlinetimeadmin mod [player] [time]](dark_aqua) 去修改一个玩家的在线时间'
+          success: '&gray&[%player%](dark_aqua) 的在线时间成功修改为 [%time%](dark_aqua).'
+          negativetimesum: '&gray&给出的时间 [%time%](dark_aqua) 是负数，但该值必须大于0'
+        reset:
+          usage: '&gray&使用 [/onlinetimeadmin reset [player]](dark_aqua) 去重置一个玩家的在线时间'
+          success: '&gray&[%player%](dark_aqua) 的在线时间成功重置'
